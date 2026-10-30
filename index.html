@@ -542,7 +542,8 @@ footer {
 /* ── RESPONSIVE ── */
 @media (max-width: 900px) {
   nav { padding: 0 20px; }
-  .nav-links { display: none; }
+  .nav-links a:not(.nav-cta) { display: none; }
+  .nav-links { gap: 0; }
   .hero { padding: 90px 24px 60px; }
   .hero-inner { grid-template-columns: 1fr; gap: 48px; }
   .hero-right { display: none; }
@@ -576,7 +577,7 @@ footer {
     <a href="#recibes">Lo que recibes</a>
     <a href="#verificar">Verificar reporte</a>
     <a href="#contacto">Contacto</a>
-    <a href="#" class="nav-cta">PORTAL CLIENTES</a>
+    <a href="portal.html" class="nav-cta">PORTAL CLIENTES</a>
   </div>
 </nav>
 
@@ -1080,7 +1081,7 @@ footer {
           <li><a href="#productos">Inspección cítricos</a></li>
           <li><a href="#productos">Inspección uva</a></li>
           <li><a href="#verificar">Verificar reporte</a></li>
-          <li><a href="#">Portal clientes</a></li>
+          <li><a href="portal.html">Portal clientes</a></li>
         </ul>
       </div>
       <div class="footer-col">
@@ -1101,88 +1102,6 @@ footer {
 </footer>
 
 <script>
-// ── VERIFICACIÓN ──
-const REPORTES = {
-  'AV-0004-VKLL-KNLK': {
-    id:'AV-2026-0004', fecha:'13/10/2026',
-    exportador:'Andes Fresh SAC', importador:'Terra Trading S.A.S.',
-    inspector:'Luis Amanduy', producto:'Uva Red Globe CAT 1',
-    contenedor:'HLBU9952315 / HLCULI3261012680',
-    destino:'Colombia — Buenaventura',
-    scoreTotal:13.33, resultado:'APROBADO',
-  },
-  'AV-0002-RMNB-XQVZ': {
-    id:'AV-2026-0002', fecha:'03/07/2026',
-    exportador:'Andes Fresh SAC', importador:'MIDI CARAIBES',
-    inspector:'Angélica Meza', producto:'Mandarina Murcott CAT 1',
-    contenedor:'MMAU127418-7',
-    destino:'Guyana Francesa',
-    scoreTotal:3.40, resultado:'APROBADO',
-  },
-};
-
-function fmtCode(input) {
-  let v = input.value.replace(/[^A-Z0-9]/gi,'').toUpperCase();
-  let parts = [];
-  if(v.length>0) parts.push(v.slice(0,2));
-  if(v.length>2) parts.push(v.slice(2,6));
-  if(v.length>6) parts.push(v.slice(6,10));
-  if(v.length>10) parts.push(v.slice(10,14));
-  input.value = parts.join('-');
-}
-
-function verificar() {
-  const raw = document.getElementById('vcode').value.trim().toUpperCase();
-  const res = document.getElementById('vresult');
-  const box = document.getElementById('vrbox');
-  const icon = document.getElementById('vricon');
-  const text = document.getElementById('vrtext');
-  const title = document.getElementById('vrtitle');
-  const sub = document.getElementById('vrsub');
-  const detail = document.getElementById('vrdetail');
-
-  res.classList.add('show');
-  detail.style.display = 'none';
-
-  if(!raw || raw.length < 14) {
-    box.className = 'vr-box fail';
-    icon.textContent = '✗';
-    text.className = 'vr-text fail';
-    title.textContent = 'Código inválido';
-    sub.textContent = 'Ingresa el código completo del reporte.';
-    return;
-  }
-
-  const r = REPORTES[raw];
-  if(r) {
-    box.className = 'vr-box ok';
-    icon.textContent = '✓';
-    text.className = 'vr-text ok';
-    title.textContent = 'Reporte auténtico — VERIFICADO';
-    sub.textContent = 'Este reporte fue emitido por ALMARA VERIFIED y sus datos son auténticos.';
-    const bc = r.resultado==='APROBADO'?'badge-ok':r.resultado==='OBSERVADO'?'badge-obs':'badge-rej';
-    detail.style.display = 'block';
-    detail.innerHTML = `
-      ${dr('Código',r.id)}${dr('Exportador',r.exportador)}
-      ${dr('Importador',r.importador)}${dr('Producto',r.producto)}
-      ${dr('Contenedor',r.contenedor)}${dr('Destino',r.destino)}
-      ${dr('Fecha',r.fecha)}${dr('Inspector',r.inspector)}
-      ${dr('Score',r.scoreTotal.toFixed(2)+'%')}
-      ${dr('Resultado',`<span class="${bc}">${r.resultado}</span>`)}
-    `;
-  } else {
-    box.className = 'vr-box fail';
-    icon.textContent = '✗';
-    text.className = 'vr-text fail';
-    title.textContent = 'No verificado — INVÁLIDO';
-    sub.textContent = 'Este código no corresponde a ningún reporte registrado. El documento puede ser falso o el código fue ingresado incorrectamente.';
-  }
-}
-
-function dr(l,v){
-  return `<div class="vr-row"><span class="vr-label">${l}</span><span class="vr-val">${v}</span></div>`;
-}
-
 // ── FORMULARIO ──
 function enviarFormulario() {
   const nombre  = document.getElementById('cf-nombre').value.trim();
@@ -1216,6 +1135,62 @@ window.addEventListener('scroll', () => {
     nav.style.boxShadow = 'none';
   }
 });
+</script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+const app = initializeApp({
+  apiKey: "AIzaSyBJN8W1Zb4s3PISvwVQJ68VMeZxCF_rOCw",
+  authDomain: "almara-verified.firebaseapp.com",
+  projectId: "almara-verified",
+  storageBucket: "almara-verified.firebasestorage.app",
+  messagingSenderId: "399669286258",
+  appId: "1:399669286258:web:e4c73e3d18b2481748b9eb"
+});
+const db = getFirestore(app);
+const esc = s => (s===null||s===undefined||s==='') ? '—' : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const dr = (l,v) => '<div class="vr-row"><span class="vr-label">'+l+'</span><span class="vr-val">'+v+'</span></div>';
+
+window.fmtCode = function(input){
+  const v = input.value.replace(/[^A-Z0-9]/gi,'').toUpperCase(); const p = [];
+  if(v.length>0) p.push(v.slice(0,2)); if(v.length>2) p.push(v.slice(2,6));
+  if(v.length>6) p.push(v.slice(6,10)); if(v.length>10) p.push(v.slice(10,14));
+  input.value = p.join('-');
+};
+
+window.verificar = async function(){
+  const raw = document.getElementById('vcode').value.trim().toUpperCase();
+  const res = document.getElementById('vresult'), box = document.getElementById('vrbox');
+  const icon = document.getElementById('vricon'), title = document.getElementById('vrtitle');
+  const sub = document.getElementById('vrsub'), detail = document.getElementById('vrdetail');
+  res.classList.add('show'); detail.style.display = 'none';
+  if(raw.length < 14){
+    box.className='vr-box fail'; icon.textContent='✗';
+    title.textContent='Código incompleto'; sub.textContent='Ingresa el código completo que aparece en el reporte.'; return;
+  }
+  box.className='vr-box'; icon.textContent='…'; title.textContent='Verificando…'; sub.textContent='Consultando la base de datos de ALMARA VERIFIED.';
+  try{
+    const snap = await getDoc(doc(db,'verificaciones',raw));
+    if(snap.exists()){
+      const r = snap.data();
+      box.className='vr-box ok'; icon.textContent='✓';
+      title.textContent='Reporte auténtico — VERIFICADO';
+      sub.textContent='Este reporte fue emitido por ALMARA VERIFIED.';
+      const bc = r.resultado==='APROBADO'?'badge-ok':r.resultado==='OBSERVADO'?'badge-obs':'badge-rej';
+      detail.style.display='block';
+      detail.innerHTML = dr('Código',esc(r.id))+dr('Exportador',esc(r.exportador))+dr('Importador',esc(r.importador))+
+        dr('Producto',esc(r.producto))+dr('Destino',esc(r.destino))+dr('Fecha',esc(r.fecha))+dr('Inspector',esc(r.inspector))+
+        dr('Score',(Number(r.scoreTotal)||0).toFixed(2)+'%')+dr('Resultado','<span class="'+bc+'">'+esc(r.resultado)+'</span>');
+    } else {
+      box.className='vr-box fail'; icon.textContent='✗';
+      title.textContent='No verificado — INVÁLIDO';
+      sub.textContent='Este código no corresponde a ningún reporte emitido por ALMARA VERIFIED. El documento puede ser falso o el código fue ingresado incorrectamente.';
+    }
+  }catch(e){
+    box.className='vr-box fail'; icon.textContent='✗';
+    title.textContent='No se pudo consultar'; sub.textContent='Intenta de nuevo en unos minutos.';
+  }
+};
 </script>
 </body>
 </html>
