@@ -85,7 +85,31 @@ td{padding:10px 12px;font-size:12px;vertical-align:middle}
 .sello .t2{font-size:14px;font-weight:700;color:#fff;font-family:monospace;letter-spacing:3px}
 .sello .t3{font-size:9px;color:rgba(255,255,255,.4);margin-top:4px}
 .note{padding:12px 14px;background:var(--warn);border-left:3px solid var(--clay);font-size:12px;color:var(--stone);margin-top:14px}
-@media(max-width:700px){.krow,.km{grid-template-columns:1fr 1fr}.g2,.g3,.ig{grid-template-columns:1fr}.hb .vf{display:none}}
+
+/* DASHBOARD */
+.dh{margin-bottom:16px}.dh h2{font-size:20px;color:var(--ink);letter-spacing:.5px}.dh p{font-size:12px;color:var(--stone);margin-top:3px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;align-items:flex-end}
+.ff label{display:block;font-size:9px;font-weight:700;color:var(--stone);letter-spacing:1px;margin-bottom:4px;text-transform:uppercase}
+.ff select{width:auto;min-width:150px;padding:7px 10px;font-size:12px;background:#fff}
+.k .d{font-size:11px;margin-top:4px;font-weight:700}
+.dgrid{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px}
+.dgrid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}.dgrid2.one{grid-template-columns:1fr}
+.panel{background:#fff;border:1px solid var(--rule);padding:18px;min-width:0}
+.panel h4{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink)}
+.panel .sub{font-size:11px;color:var(--stone-lt);margin:3px 0 14px}
+.panel svg{display:block}.chartwrap{overflow-x:auto}
+.bar-row{display:grid;grid-template-columns:150px 1fr 56px;gap:10px;align-items:center;margin:11px 0}
+.bl{font-size:12px;font-weight:700;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bs{font-size:10px;color:var(--stone)}
+.bar-track{display:flex;background:var(--parch);height:16px;position:relative}
+.bf{height:100%}.mk{position:absolute;top:-3px;bottom:-3px;width:1px;background:var(--stone-lt)}
+.bv{font-size:13px;font-weight:700;text-align:right}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:10px;color:var(--stone);margin-top:10px}
+.legend i{display:inline-block;width:9px;height:9px;margin-right:5px;vertical-align:middle}
+.alert-item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--rule);cursor:pointer;font-size:12px}
+.alert-item:last-child{border:none}.alert-item:hover{background:var(--parch)}
+.nodata{text-align:center;padding:34px 10px;color:var(--stone-lt);font-size:12px}
+.ok-note{font-size:12px;color:var(--sage);background:var(--sage-pale);padding:10px 12px}
+@media(max-width:700px){.dgrid,.dgrid2{grid-template-columns:1fr}.chartwrap svg{min-width:560px}.bar-row{grid-template-columns:105px 1fr 50px}.ff select{min-width:130px}.krow,.km{grid-template-columns:1fr 1fr}.g2,.g3,.ig{grid-template-columns:1fr}.hb .vf{display:none}}
 </style>
 </head>
 <body>
@@ -254,23 +278,128 @@ const head = '<thead><tr><th>Código</th><th>Fecha</th><th>Producto</th><th>Expo
 function bindRows(){ $('content').querySelectorAll('tr.cl').forEach(tr=>tr.addEventListener('click',()=>{ const r=cache.find(x=>x.id===tr.dataset.id); if(r) vDetalle(r); })); }
 async function safe(fn){ try{ await fn(); }catch(e){ $('content').innerHTML='<div class="note">No se pudieron cargar los datos. Revisa tu conexión e intenta de nuevo.</div>'; } }
 
+/*DASH_START*/
+const COL = {APROBADO:'#4A6741',OBSERVADO:'#C4906A',RECHAZADO:'#8B0000'};
+const tier = v => v<=15 ? COL.APROBADO : (v<=25 ? COL.OBSERVADO : COL.RECHAZADO);
+const pf = s => { const m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(s||'')); return m ? new Date(+m[3],+m[2]-1,+m[1]) : null; };
+const F = {per:'all',prod:'',dest:'',res:'',exp:'',imp:''};
+const uniq = (list,k) => [...new Set(list.map(r=>r[k]).filter(Boolean))].sort();
+const avgOf = (list,fn) => list.length ? list.reduce((s,r)=>s+fn(r),0)/list.length : null;
+
+function aplicarFiltros(list){
+  const now = new Date(), days = {'30':30,'90':90,'365':365}[F.per];
+  return list.filter(r=>{
+    if(days){ const d=pf(r.fecha); if(!d || (now-d)/864e5>days) return false; }
+    if(F.prod && r.producto!==F.prod) return false;
+    if(F.dest && r.destino!==F.dest) return false;
+    if(F.res && r.resultado!==F.res) return false;
+    if(F.exp && r.exportador!==F.exp) return false;
+    if(F.imp && r.importador!==F.imp) return false;
+    return true;
+  });
+}
+function selHtml(id,label,opts,val,all){
+  return '<div class="ff"><label>'+label+'</label><select data-f="'+id+'"><option value="">'+all+'</option>'+opts.map(o=>'<option value="'+esc(o)+'"'+(o===val?' selected':'')+'>'+esc(o)+'</option>').join('')+'</select></div>';
+}
+function lineChart(list){
+  const pts = list.map(r=>({d:pf(r.fecha),y:num(r.scoreTotal),r})).filter(p=>p.d).sort((a,b)=>a.d-b.d);
+  if(!pts.length) return '<div class="nodata">Sin reportes en este período.</div>';
+  const W=720,H=270,m={l:42,r:32,t:14,b:36}, iw=W-m.l-m.r, ih=H-m.t-m.b;
+  const ymax = Math.max(30, Math.ceil((Math.max(...pts.map(p=>p.y))+3)/5)*5);
+  let x0=Math.min(...pts.map(p=>p.d.getTime())), x1=Math.max(...pts.map(p=>p.d.getTime()));
+  if(x0===x1){ x0-=864e5*20; x1+=864e5*20; } else { const pad=(x1-x0)*0.04; x0-=pad; x1+=pad; }
+  const X=t=>m.l+(t-x0)/(x1-x0)*iw, Y=v=>m.t+ih-(v/ymax)*ih;
+  let s='<div class="chartwrap"><svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto" role="img" aria-label="Evolución del score">';
+  s+='<rect x="'+m.l+'" y="'+Y(15)+'" width="'+iw+'" height="'+(Y(0)-Y(15))+'" fill="#EBF0EA"/>';
+  s+='<rect x="'+m.l+'" y="'+Y(25)+'" width="'+iw+'" height="'+(Y(15)-Y(25))+'" fill="#FDF6F0"/>';
+  s+='<rect x="'+m.l+'" y="'+Y(ymax)+'" width="'+iw+'" height="'+(Y(25)-Y(ymax))+'" fill="#FDECEA"/>';
+  for(let v=0; v<=ymax; v+=5){ s+='<line x1="'+m.l+'" x2="'+(W-m.r)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" stroke="#E4E1DA" stroke-width="'+((v===15||v===25)?1.2:.6)+'"'+((v===15||v===25)?' stroke-dasharray="4 3"':'')+'/><text x="'+(m.l-7)+'" y="'+(Y(v)+3.5)+'" text-anchor="end" font-size="10" fill="#7A7A6E">'+v+'%</text>'; }
+  const nl = Math.min(5,pts.length>1?5:1);
+  for(let i=0;i<nl;i++){ const t = nl===1 ? (x0+x1)/2 : x0+(x1-x0)*i/(nl-1); const d=new Date(t);
+    s+='<text x="'+X(t)+'" y="'+(H-12)+'" text-anchor="middle" font-size="10" fill="#7A7A6E">'+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+String(d.getFullYear()).slice(2)+'</text>'; }
+  if(pts.length>1) s+='<polyline fill="none" stroke="#2C2C28" stroke-width="1.6" stroke-linejoin="round" points="'+pts.map(p=>X(p.d.getTime())+','+Y(p.y)).join(' ')+'"/>';
+  pts.forEach(p=>{ s+='<circle data-open="'+esc(p.r.id)+'" cx="'+X(p.d.getTime())+'" cy="'+Y(p.y)+'" r="7" fill="'+(COL[p.r.resultado]||'#7A7A6E')+'" stroke="#fff" stroke-width="2.5" style="cursor:pointer"><title>'+esc(p.r.id)+' · '+esc(p.r.producto)+' · '+p.y.toFixed(2)+'% · '+esc(p.r.resultado)+'</title></circle>'; });
+  return s+'</svg></div><div class="legend"><span><i style="background:#4A6741"></i>Aprobado</span><span><i style="background:#C4906A"></i>Observado</span><span><i style="background:#8B0000"></i>Rechazado</span><span>· Zonas: verde ≤ 15%, crema 15–25%, rojo &gt; 25%</span><span>· Toca un punto para abrir el reporte</span></div>';
+}
+function groupRows(list,key){
+  const g = {}; list.forEach(r=>{ const k=r[key]||'—'; (g[k]=g[k]||[]).push(r); });
+  return Object.keys(g).map(k=>{ const l=g[k], ap=l.filter(r=>r.resultado==='APROBADO').length;
+    return {label:k, n:l.length, sub:l.length+(l.length===1?' reporte':' reportes')+' · '+Math.round(ap/l.length*100)+'% aprobados',
+      cal:avgOf(l,r=>num(r.scoreCalidad)), con:avgOf(l,r=>num(r.scoreCondicion)), tot:avgOf(l,r=>num(r.scoreTotal))}; })
+    .sort((a,b)=>b.n-a.n || a.tot-b.tot);
+}
+function barRows(rows){
+  if(!rows.length) return '<div class="nodata">Sin datos para los filtros elegidos.</div>';
+  return rows.map(r=>{ const wc=Math.min(100,r.cal/30*100), wn=Math.min(100-wc,r.con/30*100), c=tier(r.tot);
+    return '<div class="bar-row"><div style="min-width:0"><div class="bl" title="'+esc(r.label)+'">'+esc(r.label)+'</div><div class="bs">'+esc(r.sub)+'</div></div>'+
+      '<div class="bar-track"><div class="bf" style="width:'+wc+'%;background:'+c+'"></div><div class="bf" style="width:'+wn+'%;background:'+c+';opacity:.5"></div><i class="mk" style="left:50%"></i><i class="mk" style="left:83.3%"></i></div>'+
+      '<div class="bv" style="color:'+c+'">'+r.tot.toFixed(1)+'%</div></div>'; }).join('')+
+    '<div class="legend"><span><i style="background:#7A7A6E"></i>Calidad</span><span><i style="background:#7A7A6E;opacity:.5"></i>Condición</span><span>| líneas en 15% y 25%</span></div>';
+}
+function donut(list){
+  if(!list.length) return '<div class="nodata">Sin datos.</div>';
+  const C=2*Math.PI*40, n=list.length; let off=0, segs='', leg='';
+  ['APROBADO','OBSERVADO','RECHAZADO'].forEach(k=>{ const c=list.filter(r=>r.resultado===k).length; if(!c) return; const len=c/n*C;
+    segs+='<circle cx="60" cy="60" r="40" fill="none" stroke="'+COL[k]+'" stroke-width="16" stroke-dasharray="'+len+' '+(C-len)+'" stroke-dashoffset="'+(-off)+'" transform="rotate(-90 60 60)"/>'; off+=len;
+    leg+='<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0"><span><i style="display:inline-block;width:9px;height:9px;background:'+COL[k]+';margin-right:7px"></i>'+k+'</span><strong>'+c+'</strong></div>'; });
+  return '<div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap"><svg viewBox="0 0 120 120" width="112" height="112">'+segs+'<text x="60" y="58" text-anchor="middle" font-size="22" font-weight="700" fill="#2C2C28">'+n+'</text><text x="60" y="73" text-anchor="middle" font-size="8" fill="#7A7A6E">LOTES</text></svg><div style="flex:1;min-width:120px">'+leg+'</div></div>';
+}
+function dashHtml(all,rol){
+  const L = aplicarFiltros(all).slice().sort((a,b)=>String(b.id).localeCompare(String(a.id)));
+  const ap = L.filter(r=>r.resultado==='APROBADO').length, avg = avgOf(L,r=>num(r.scoreTotal));
+  const prods = uniq(L,'producto'), brixs = L.map(r=>parseFloat(r.brix)).filter(v=>isFinite(v)&&v>0), bavg = (prods.length===1 && brixs.length) ? brixs.reduce((s,v)=>s+v,0)/brixs.length : null;
+  const staff = rol==='admin'||rol==='inspector';
+  const sub = staff ? 'Operación completa de ALMARA VERIFIED' : rol==='importador' ? 'Calidad de tus proveedores, verificada en origen antes del cargue' : 'Calidad de tus despachos, verificada en origen antes del cargue';
+  const per = '<div class="ff"><label>Período</label><select data-f="per">'+[['all','Todo el historial'],['30','Últimos 30 días'],['90','Últimos 90 días'],['365','Últimos 12 meses']].map(([v,l])=>'<option value="'+v+'"'+(F.per===v?' selected':'')+'>'+l+'</option>').join('')+'</select></div>';
+  let filt = per + selHtml('prod','Producto',uniq(all,'producto'),F.prod,'Todos') + selHtml('dest','Destino',uniq(all,'destino'),F.dest,'Todos') + selHtml('res','Resultado',['APROBADO','OBSERVADO','RECHAZADO'],F.res,'Todos');
+  if(staff) filt += selHtml('exp','Exportador',uniq(all,'exportador'),F.exp,'Todos') + selHtml('imp','Importador',uniq(all,'importador'),F.imp,'Todos');
+  else if(rol==='importador') filt += selHtml('exp','Proveedor',uniq(all,'exportador'),F.exp,'Todos');
+  else filt += selHtml('imp','Cliente',uniq(all,'importador'),F.imp,'Todos');
+  const panels = [['Calidad por producto','Score promedio por producto, separado en calidad y condición','producto']];
+  if(staff) panels.push(['Por exportador','Quién despacha mejor fruta','exportador'],['Por importador','Calidad recibida por cliente','importador'],['Por inspector','Reportes y score por inspector','inspector']);
+  else if(rol==='importador') panels.push(['Por proveedor','Compara la calidad de cada exportador','exportador'],['Por destino','Calidad según el puerto de destino','destino']);
+  else panels.push(['Por cliente','Calidad entregada a cada importador','importador'],['Por destino','Calidad según el puerto de destino','destino']);
+  let rows=''; for(let i=0;i<panels.length;i+=2){ const ch=panels.slice(i,i+2);
+    rows+='<div class="dgrid2'+(ch.length===1?' one':'')+'">'+ch.map(([t,s,k])=>'<div class="panel"><h4>'+t+'</h4><div class="sub">'+s+'</div>'+barRows(groupRows(L,k))+'</div>').join('')+'</div>'; }
+  const warn = L.filter(r=>r.resultado!=='APROBADO').sort((a,b)=>String(b.id).localeCompare(String(a.id))).slice(0,4);
+  const alerts = warn.length ? warn.map(r=>'<div class="alert-item" data-open="'+esc(r.id)+'"><span><strong>'+esc(r.id)+'</strong><br><span style="color:var(--stone);font-size:11px">'+esc(r.producto)+' · '+esc(r.fecha)+'</span></span>'+badge(r.resultado)+'</div>').join('') : '<div class="ok-note">Todos los lotes de este período están aprobados.</div>';
+  const kc = avg===null ? 'var(--ink)' : tier(avg), kt = avg===null ? '' : avg<=15 ? 'Dentro de lo aceptable' : avg<=25 ? 'Lotes en observación' : 'Requiere atención';
+  return '<div class="dh"><h2>Panel de calidad</h2><p>'+sub+'</p></div><div class="filters">'+filt+'</div>'+
+   '<div class="krow"><div class="k"><div class="l">Reportes</div><div class="v">'+L.length+'</div><div class="s">de '+all.length+' en total</div></div>'+
+   '<div class="k"><div class="l">Aprobación</div><div class="v g">'+(L.length?Math.round(ap/L.length*100)+'%':'—')+'</div><div class="s">'+ap+' de '+L.length+' lotes</div></div>'+
+   '<div class="k"><div class="l">Score promedio</div><div class="v" style="color:'+kc+'">'+(avg===null?'—':avg.toFixed(1)+'%')+'</div><div class="d" style="color:'+kc+'">'+kt+'</div></div>'+
+   '<div class="k"><div class="l">Brix promedio</div><div class="v">'+(bavg===null?'—':bavg.toFixed(1))+'</div><div class="s">'+(bavg!==null?esc(prods[0]):(prods.length>1?'Filtra por producto para verlo':'Sin datos'))+'</div></div></div>'+
+   '<div class="dgrid"><div class="panel"><h4>Evolución del score</h4><div class="sub">Defectos totales por lote en el tiempo. Mientras más abajo, mejor.</div>'+lineChart(L)+'</div>'+
+   '<div><div class="panel" style="margin-bottom:16px"><h4>Resultados</h4><div class="sub">Distribución de los lotes</div>'+donut(L)+'</div><div class="panel"><h4>Requieren atención</h4><div class="sub">Lotes observados o rechazados</div>'+alerts+'</div></div></div>'+
+   rows+
+   '<div class="sh"><div class="st">Últimos reportes</div></div><div class="tw"><table>'+head+'<tbody>'+rowsHtml(L.slice(0,5))+'</tbody></table></div>';
+}
+/*DASH_END*/
+
 async function vDashboard(){ await safe(async()=>{
   const all = await getReportes();
-  const ap = all.filter(r=>r.resultado==='APROBADO').length, ob = all.filter(r=>r.resultado==='OBSERVADO').length;
-  const avg = all.length ? (all.reduce((s,r)=>s+num(r.scoreTotal),0)/all.length) : null;
-  $('content').innerHTML =
-   '<div class="krow"><div class="k"><div class="l">Total reportes</div><div class="v">'+all.length+'</div></div>'+
-   '<div class="k"><div class="l">Aprobados</div><div class="v g">'+ap+'</div><div class="s">score ≤ 15%</div></div>'+
-   '<div class="k"><div class="l">Observados</div><div class="v c">'+ob+'</div><div class="s">score 15–25%</div></div>'+
-   '<div class="k"><div class="l">Score promedio</div><div class="v '+((avg||0)>15?'c':'g')+'">'+(avg===null?'—':avg.toFixed(1)+'%')+'</div></div></div>'+
-   '<div class="sh"><div class="st">Últimos reportes</div></div><div class="tw"><table>'+head+'<tbody>'+rowsHtml(all.slice(0,5))+'</tbody></table></div>';
-  bindRows();
+  const draw = ()=>{
+    $('content').innerHTML = dashHtml(all, perfil.rol);
+    $('content').querySelectorAll('select[data-f]').forEach(s=>s.addEventListener('change',()=>{ F[s.dataset.f]=s.value; draw(); }));
+    $('content').querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>{ const r=cache.find(x=>x.id===el.dataset.open); if(r) vDetalle(r); }));
+    bindRows();
+  };
+  draw();
 });}
 
 async function vReportes(){ await safe(async()=>{
   const all = await getReportes();
-  $('content').innerHTML = '<div class="sh"><div class="st">Reportes ('+all.length+')</div>'+(perfil.rol==='admin'?'<button class="btn sm ghost" id="btnSeed">Cargar reportes iniciales (0004 y 0005)</button>':'')+'</div><div class="tw"><table>'+head+'<tbody>'+rowsHtml(all)+'</tbody></table></div>';
-  bindRows();
+  $('content').innerHTML = '<div class="sh"><div class="st" id="rcount"></div>'+(perfil.rol==='admin'?'<button class="btn sm ghost" id="btnSeed">Cargar reportes iniciales (0004 y 0005)</button>':'')+'</div>'+
+    '<div class="filters"><div class="ff" style="flex:1;min-width:200px"><label>Buscar</label><input id="rq" placeholder="Código, empresa, producto, contenedor…"></div>'+
+    '<div class="ff"><label>Resultado</label><select id="rr"><option value="">Todos</option><option>APROBADO</option><option>OBSERVADO</option><option>RECHAZADO</option></select></div></div>'+
+    '<div class="tw"><table>'+head+'<tbody id="rbody"></tbody></table></div>';
+  const draw = ()=>{
+    const q=$('rq').value.trim().toLowerCase(), rs=$('rr').value;
+    const l = all.filter(r=>(!rs||r.resultado===rs) && (!q || [r.id,r.exportador,r.importador,r.producto,r.contenedor,r.destino].join(' ').toLowerCase().includes(q)));
+    $('rcount').textContent = 'Reportes ('+l.length+(l.length!==all.length?' de '+all.length:'')+')';
+    $('rbody').innerHTML = rowsHtml(l); bindRows();
+  };
+  $('rq').addEventListener('input',draw); $('rr').addEventListener('change',draw); draw();
   if($('btnSeed')) $('btnSeed').addEventListener('click', seed);
 });}
 
