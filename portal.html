@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ALMARA VERIFIED — Portal de Clientes</title>
+<style>
+:root{--sage:#4A6741;--sage-md:#5E8254;--sage-pale:#EBF0EA;--clay:#C4906A;--clay-lt:#E8C4A8;--ink:#2C2C28;--stone:#7A7A6E;--stone-lt:#B8B5AE;--parch:#F5F2EC;--white:#fff;--rule:#E4E1DA;--red:#8B0000;--red-pale:#FDECEA;--warn:#FDF6F0}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,Helvetica,sans-serif;background:var(--parch);color:var(--ink);font-size:14px;min-height:100vh}
+.view{display:none}.view.on{display:block}
+/* LOGIN / VERIFY */
+.center{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--sage);padding:20px}
+.card{background:var(--white);width:100%;max-width:380px;padding:34px}
+.card.wide{max-width:520px;padding:0}
+.brand .wm{font-size:26px;font-weight:700;color:var(--sage);letter-spacing:4px}
+.brand .vf{font-size:9px;color:var(--clay);letter-spacing:8px;margin-top:3px}
+.brand .sub{font-size:11px;color:var(--stone);margin:8px 0 22px}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:10px;font-weight:700;color:var(--stone);letter-spacing:1px;margin-bottom:5px;text-transform:uppercase}
+input,select,textarea{width:100%;border:1px solid var(--rule);padding:9px 11px;font-size:13px;color:var(--ink);background:var(--parch);outline:none;font-family:Arial}
+input:focus,select:focus,textarea:focus{border-color:var(--sage)}
+.btn{background:var(--sage);color:#fff;border:none;padding:11px 20px;font-size:12px;font-weight:700;letter-spacing:1px;cursor:pointer}
+.btn:hover{background:var(--sage-md)}.btn.full{width:100%}
+.btn.ghost{background:none;border:1px solid var(--rule);color:var(--stone)}
+.btn.ghost:hover{border-color:var(--sage);color:var(--sage)}
+.btn.danger{background:none;border:1px solid var(--red);color:var(--red);padding:5px 10px;font-size:11px}
+.btn.sm{padding:5px 10px;font-size:11px}
+.link{background:none;border:none;color:var(--stone);font-size:11px;cursor:pointer;text-decoration:underline;margin-top:12px;display:block}
+.msg{padding:9px 11px;font-size:12px;margin-bottom:14px;display:none}
+.msg.err{background:var(--red-pale);color:var(--red)}.msg.ok{background:var(--sage-pale);color:var(--sage)}
+.foot{margin-top:18px;font-size:10px;color:var(--stone-lt);text-align:center}
+.vhead{background:var(--sage);padding:20px 24px}.vhead .wm{font-size:22px;font-weight:700;color:var(--parch);letter-spacing:4px}.vhead .vf{font-size:8px;color:var(--clay-lt);letter-spacing:7px;margin-top:3px}
+.vbody{padding:24px}
+.vrow{display:flex;gap:8px;margin-bottom:18px}.vrow input{font-family:monospace;letter-spacing:2px;text-transform:uppercase;text-align:center}
+.vstat{padding:14px 16px;margin-bottom:14px;border:2px solid}
+.vstat.ok{background:var(--sage-pale);border-color:var(--sage);color:var(--sage)}.vstat.fail{background:var(--red-pale);border-color:var(--red);color:var(--red)}
+.vstat strong{display:block;font-size:14px;margin-bottom:2px}.vstat span{font-size:12px;color:var(--stone)}
+.drow{display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--rule)}.drow:last-child{border:none}
+.dl{font-size:10px;color:var(--stone);min-width:110px}.dv{font-size:12px;font-weight:600}
+/* APP */
+.header{background:var(--sage);padding:0 20px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.hb{display:flex;align-items:baseline;gap:8px}.hb .wm{font-size:19px;font-weight:700;color:var(--parch);letter-spacing:4px}.hb .vf{font-size:9px;color:var(--clay-lt);letter-spacing:5px}
+.hr{display:flex;align-items:center;gap:10px}.ub{background:rgba(255,255,255,.12);color:var(--clay-lt);padding:4px 10px;font-size:11px}
+.hb2{background:none;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.75);padding:4px 10px;font-size:11px;cursor:pointer}
+.wrap{max-width:1080px;margin:0 auto;padding:20px}
+.tabs{display:flex;gap:2px;margin-bottom:20px;border-bottom:2px solid var(--rule);overflow-x:auto}
+.tab{padding:9px 18px;font-size:12px;font-weight:700;color:var(--stone);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap}
+.tab.on{color:var(--sage);border-bottom-color:var(--sage)}
+.krow{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.k{background:var(--white);border:1px solid var(--rule);padding:18px}
+.k .l{font-size:10px;color:var(--stone);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}.k .v{font-size:26px;font-weight:700}
+.k .v.g{color:var(--sage)}.k .v.c{color:var(--clay)}.k .s{font-size:10px;color:var(--stone-lt);margin-top:3px}
+.sh{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap}
+.st{font-size:11px;font-weight:700;color:var(--stone);letter-spacing:1px;text-transform:uppercase}
+.tw{background:var(--white);border:1px solid var(--rule);overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead tr{background:var(--ink)}thead th{padding:9px 12px;text-align:left;font-size:10px;color:#fff;letter-spacing:.5px;white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--rule)}tbody tr.cl{cursor:pointer}tbody tr.cl:hover{background:var(--sage-pale)}
+td{padding:10px 12px;font-size:12px;vertical-align:middle}
+.badge{display:inline-block;padding:3px 8px;font-size:10px;font-weight:700}
+.bok{background:var(--sage-pale);color:var(--sage)}.bob{background:var(--warn);color:var(--clay)}.brej{background:var(--red-pale);color:var(--red)}
+.empty{text-align:center;padding:40px 20px;color:var(--stone-lt)}
+.aform{background:var(--white);border:1px solid var(--rule);padding:22px}
+.aform h3{font-size:13px;margin-bottom:18px;padding-bottom:9px;border-bottom:1px solid var(--rule)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.fs{margin-bottom:18px}.fst{font-size:10px;font-weight:700;color:var(--stone);letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--rule);padding-bottom:3px;margin-bottom:10px}
+.rd{background:var(--white);border:1px solid var(--rule)}
+.rh{background:var(--sage);padding:18px 22px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.rh .wm{font-size:20px;font-weight:700;color:var(--parch);letter-spacing:3px}.rh .vf{font-size:8px;color:var(--clay-lt);letter-spacing:6px;margin-top:3px}
+.rh .meta{text-align:right;font-size:10px;color:rgba(255,255,255,.6);font-family:monospace;line-height:1.9}
+.tg{background:var(--sage-md);padding:3px 22px;font-size:11px;color:var(--clay-lt);font-style:italic}
+.rb{padding:18px 22px}
+.km{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--rule);margin-bottom:18px}
+.km div{background:var(--parch);padding:10px 12px;text-align:center}.km .l{font-size:10px;color:var(--stone)}.km .v{font-size:16px;font-weight:700;margin-top:3px}
+.res{border:2px solid var(--sage);background:var(--sage-pale);padding:12px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;color:var(--sage);font-weight:700}
+.res.obs{border-color:var(--clay);background:var(--warn);color:var(--clay)}.res.rej{border-color:var(--red);background:var(--red-pale);color:var(--red)}
+.ig{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+.ibt{font-size:10px;font-weight:700;color:var(--stone);letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--rule);padding-bottom:3px;margin-bottom:8px}
+.obs{background:var(--parch);border:1px solid var(--rule);padding:12px 14px;font-size:12px;line-height:1.7;white-space:pre-wrap;margin-bottom:18px}
+.lf{display:block;background:var(--sage-pale);border-left:3px solid var(--sage);padding:10px 14px;font-size:12px;color:var(--sage);text-decoration:none;font-weight:600;margin-bottom:18px}
+.sello{display:flex;align-items:center;gap:18px;background:var(--ink);padding:14px 20px}
+.sello svg{width:78px;height:78px;flex-shrink:0}
+.sello .t1{font-size:9px;color:var(--clay-lt);letter-spacing:2px;text-transform:uppercase;margin-bottom:5px}
+.sello .t2{font-size:14px;font-weight:700;color:#fff;font-family:monospace;letter-spacing:3px}
+.sello .t3{font-size:9px;color:rgba(255,255,255,.4);margin-top:4px}
+.note{padding:12px 14px;background:var(--warn);border-left:3px solid var(--clay);font-size:12px;color:var(--stone);margin-top:14px}
+@media(max-width:700px){.krow,.km{grid-template-columns:1fr 1fr}.g2,.g3,.ig{grid-template-columns:1fr}.hb .vf{display:none}}
+</style>
+</head>
+<body>
+
+<!-- VERIFICACIÓN PÚBLICA -->
+<div id="viewVerify" class="view"><div class="center"><div class="card wide">
+  <div class="vhead"><div class="wm">ALMARA</div><div class="vf">V E R I F I E D</div></div>
+  <div class="vbody">
+    <div class="fg"><label>Código de verificación del reporte</label></div>
+    <div class="vrow"><input id="vcode" placeholder="AV-0004-XXXX-XXXX" maxlength="19"><button class="btn" id="btnVerify">VERIFICAR</button></div>
+    <div id="vres"></div>
+    <a class="link" href="#" id="toLogin">Ir al portal de clientes</a>
+    <div class="foot">ALMARA VERIFIED · almara-group.com · Quality Assurance at Origin · Peru</div>
+  </div>
+</div></div></div>
+
+<!-- LOGIN -->
+<div id="viewLogin" class="view"><div class="center"><div class="card">
+  <div class="brand"><div class="wm">ALMARA</div><div class="vf">V E R I F I E D</div><div class="sub">Portal de clientes</div></div>
+  <div class="msg err" id="lerr"></div><div class="msg ok" id="lok"></div>
+  <div class="fg"><label>Correo electrónico</label><input id="lemail" type="email" autocomplete="username" placeholder="correo@empresa.com"></div>
+  <div class="fg"><label>Contraseña</label><input id="lpass" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+  <button class="btn full" id="btnLogin">INGRESAR</button>
+  <button class="link" id="btnReset">Olvidé mi contraseña</button>
+  <a class="link" href="#verificar" style="text-align:center">Verificar la autenticidad de un reporte</a>
+  <div class="foot">almara-group.com · Quality Assurance at Origin · Peru</div>
+</div></div></div>
+
+<!-- APP -->
+<div id="viewApp" class="view">
+  <div class="header"><div class="hb"><span class="wm">ALMARA</span><span class="vf">VERIFIED</span></div>
+    <div class="hr"><span class="ub" id="ubadge"></span><button class="hb2" id="btnLogout">Salir</button></div></div>
+  <div class="wrap"><div class="tabs" id="tabs"></div><div id="content"></div></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, getDocs, collection, query, where, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBJN8W1Zb4s3PISvwVQJ68VMeZxCF_rOCw",
+  authDomain: "almara-verified.firebaseapp.com",
+  projectId: "almara-verified",
+  storageBucket: "almara-verified.firebasestorage.app",
+  messagingSenderId: "399669286258",
+  appId: "1:399669286258:web:e4c73e3d18b2481748b9eb"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const $ = id => document.getElementById(id);
+const esc = s => (s===null||s===undefined||s==='') ? '—' : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = v => (typeof v==='number' && isFinite(v)) ? v : 0;
+const f2 = v => num(v).toFixed(2);
+let perfil = null, authUser = undefined, cache = [], appStarted = false;
+
+/* ── Código de verificación (mismo algoritmo que Apps Script) ── */
+function genCodigo(id){
+  const n = id.replace('AV-2026-','').replace('AV-','').padStart(4,'0');
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let h1=0,h2=0;
+  for(let i=0;i<id.length;i++){ h1=((h1<<5)-h1+id.charCodeAt(i))|0; h2=((h2<<3)+h2+id.charCodeAt(i)*31)|0; }
+  const toCode=(v,len)=>{let r='',x=Math.abs(v);for(let i=0;i<len;i++){r+=chars[x%chars.length];x=Math.floor(x/chars.length)||1;}return r;};
+  return 'AV-'+n.slice(-4)+'-'+toCode(h1,4)+'-'+toCode(h2,4);
+}
+const resultadoDe = t => t<=15 ? 'APROBADO' : (t<=25 ? 'OBSERVADO' : 'RECHAZADO');
+const badge = r => r==='APROBADO' ? '<span class="badge bok">APROBADO</span>' : r==='OBSERVADO' ? '<span class="badge bob">OBSERVADO</span>' : r==='RECHAZADO' ? '<span class="badge brej">RECHAZADO</span>' : esc(r);
+const safeUrl = u => (typeof u==='string' && u.startsWith('https://')) ? u : '';
+
+/* ── Vistas ── */
+function show(id){ document.querySelectorAll('.view').forEach(v=>v.classList.remove('on')); $(id).classList.add('on'); }
+function route(){
+  if(location.hash.startsWith('#verificar')){
+    show('viewVerify');
+    const c = location.hash.split('/')[1];
+    if(c){ $('vcode').value = c.toUpperCase(); verificar(); }
+    return;
+  }
+  if(authUser===undefined) return;
+  if(!authUser || !perfil){ show('viewLogin'); return; }
+  show('viewApp');
+  if(!appStarted){ appStarted = true; startApp(); }
+}
+window.addEventListener('hashchange', route);
+$('toLogin').addEventListener('click', e=>{ e.preventDefault(); history.replaceState(null,'',location.pathname); route(); });
+
+/* ── Verificación pública ── */
+$('vcode').addEventListener('input', e=>{
+  const v = e.target.value.replace(/[^A-Z0-9]/gi,'').toUpperCase(); const p=[];
+  if(v.length>0)p.push(v.slice(0,2)); if(v.length>2)p.push(v.slice(2,6)); if(v.length>6)p.push(v.slice(6,10)); if(v.length>10)p.push(v.slice(10,14));
+  e.target.value = p.join('-');
+});
+$('vcode').addEventListener('keydown', e=>{ if(e.key==='Enter') verificar(); });
+$('btnVerify').addEventListener('click', verificar);
+async function verificar(){
+  const code = $('vcode').value.trim().toUpperCase(); const out = $('vres');
+  if(code.length<14){ out.innerHTML='<div class="vstat fail"><strong>Código incompleto</strong><span>Ingresa el código completo que aparece en el reporte.</span></div>'; return; }
+  out.innerHTML='<div class="vstat" style="border-color:var(--rule);color:var(--stone)"><strong>Verificando…</strong></div>';
+  try{
+    const s = await getDoc(doc(db,'verificaciones',code));
+    if(s.exists()){
+      const r = s.data();
+      out.innerHTML = '<div class="vstat ok"><strong>Reporte auténtico — VERIFICADO</strong><span>Emitido por ALMARA VERIFIED.</span></div>'+
+        '<div>'+[['Reporte',r.id],['Producto',r.producto],['Exportador',r.exportador],['Importador',r.importador],['Destino',r.destino],['Fecha',r.fecha],['Inspector',r.inspector],['Score',f2(r.scoreTotal)+'%']].map(([l,v])=>'<div class="drow"><span class="dl">'+l+'</span><span class="dv">'+esc(v)+'</span></div>').join('')+
+        '<div class="drow"><span class="dl">Resultado</span><span class="dv">'+badge(r.resultado)+'</span></div></div>';
+    } else {
+      out.innerHTML='<div class="vstat fail"><strong>No verificado — INVÁLIDO</strong><span>Este código no corresponde a ningún reporte emitido por ALMARA VERIFIED.</span></div>';
+    }
+  }catch(e){ out.innerHTML='<div class="vstat fail"><strong>No se pudo consultar</strong><span>Intenta de nuevo en unos minutos.</span></div>'; }
+}
+
+/* ── Login ── */
+function lmsg(kind,t){ $('lerr').style.display='none'; $('lok').style.display='none'; const el=$(kind==='err'?'lerr':'lok'); el.textContent=t; el.style.display='block'; }
+$('btnLogin').addEventListener('click', async ()=>{
+  try{ await signInWithEmailAndPassword(auth, $('lemail').value.trim(), $('lpass').value); }
+  catch(e){ lmsg('err','Correo o contraseña incorrectos.'); }
+});
+$('lpass').addEventListener('keydown', e=>{ if(e.key==='Enter') $('btnLogin').click(); });
+$('btnReset').addEventListener('click', async ()=>{
+  const em = $('lemail').value.trim();
+  if(!em){ lmsg('err','Escribe tu correo arriba y vuelve a presionar este enlace.'); return; }
+  try{ await sendPasswordResetEmail(auth, em); }catch(e){}
+  lmsg('ok','Si el correo está registrado, recibirás un enlace para crear una nueva contraseña.');
+});
+$('btnLogout').addEventListener('click', async ()=>{ await signOut(auth); });
+
+onAuthStateChanged(auth, async user=>{
+  authUser = user; perfil = null; appStarted = false; cache = [];
+  if(user){
+    try{
+      const s = await getDoc(doc(db,'usuarios',user.uid));
+      if(s.exists() && s.data().activo !== false){ perfil = {...s.data(), uid:user.uid}; }
+      else { await signOut(auth); lmsg('err','Tu acceso no está habilitado. Escribe a info@almara-group.com.'); return; }
+    }catch(e){ await signOut(auth); lmsg('err','No se pudo cargar tu perfil. Intenta de nuevo.'); return; }
+  }
+  route();
+});
+
+/* ── App ── */
+const isStaff = () => perfil && (perfil.rol==='admin' || perfil.rol==='inspector');
+function startApp(){
+  $('ubadge').textContent = perfil.nombre || perfil.email || '';
+  const tabs = [['dashboard','Dashboard'],['reportes','Reportes']];
+  if(isStaff()) tabs.push(['nuevo','Nuevo reporte']);
+  if(perfil.rol==='admin') tabs.push(['usuarios','Usuarios']);
+  $('tabs').innerHTML = tabs.map(([id,l])=>'<div class="tab" data-t="'+id+'">'+l+'</div>').join('');
+  $('tabs').querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>tab(t.dataset.t)));
+  tab('dashboard');
+}
+function tab(id){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.t===id));
+  ({dashboard:vDashboard,reportes:vReportes,nuevo:vNuevo,usuarios:vUsuarios})[id]();
+}
+async function getReportes(){
+  const col = collection(db,'reportes'); let q = col;
+  if(perfil.rol==='exportador') q = query(col, where('exportador','==',perfil.nombre));
+  else if(perfil.rol==='importador') q = query(col, where('importador','==',perfil.nombre));
+  const s = await getDocs(q);
+  cache = s.docs.map(d=>d.data()).sort((a,b)=>String(b.id).localeCompare(String(a.id)));
+  return cache;
+}
+const rowsHtml = list => list.length ? list.map(r=>'<tr class="cl" data-id="'+esc(r.id)+'"><td><strong>'+esc(r.id)+'</strong></td><td>'+esc(r.fecha)+'</td><td>'+esc(r.producto)+'</td><td>'+esc(r.exportador)+'</td><td>'+esc(r.importador)+'</td><td><strong>'+f2(r.scoreTotal)+'%</strong></td><td>'+badge(r.resultado)+'</td></tr>').join('') : '<tr><td colspan="7" class="empty">Aún no hay reportes.</td></tr>';
+const head = '<thead><tr><th>Código</th><th>Fecha</th><th>Producto</th><th>Exportador</th><th>Importador</th><th>Score</th><th>Resultado</th></tr></thead>';
+function bindRows(){ $('content').querySelectorAll('tr.cl').forEach(tr=>tr.addEventListener('click',()=>{ const r=cache.find(x=>x.id===tr.dataset.id); if(r) vDetalle(r); })); }
+async function safe(fn){ try{ await fn(); }catch(e){ $('content').innerHTML='<div class="note">No se pudieron cargar los datos. Revisa tu conexión e intenta de nuevo.</div>'; } }
+
+async function vDashboard(){ await safe(async()=>{
+  const all = await getReportes();
+  const ap = all.filter(r=>r.resultado==='APROBADO').length, ob = all.filter(r=>r.resultado==='OBSERVADO').length;
+  const avg = all.length ? (all.reduce((s,r)=>s+num(r.scoreTotal),0)/all.length) : null;
+  $('content').innerHTML =
+   '<div class="krow"><div class="k"><div class="l">Total reportes</div><div class="v">'+all.length+'</div></div>'+
+   '<div class="k"><div class="l">Aprobados</div><div class="v g">'+ap+'</div><div class="s">score ≤ 15%</div></div>'+
+   '<div class="k"><div class="l">Observados</div><div class="v c">'+ob+'</div><div class="s">score 15–25%</div></div>'+
+   '<div class="k"><div class="l">Score promedio</div><div class="v '+((avg||0)>15?'c':'g')+'">'+(avg===null?'—':avg.toFixed(1)+'%')+'</div></div></div>'+
+   '<div class="sh"><div class="st">Últimos reportes</div></div><div class="tw"><table>'+head+'<tbody>'+rowsHtml(all.slice(0,5))+'</tbody></table></div>';
+  bindRows();
+});}
+
+async function vReportes(){ await safe(async()=>{
+  const all = await getReportes();
+  $('content').innerHTML = '<div class="sh"><div class="st">Reportes ('+all.length+')</div>'+(perfil.rol==='admin'?'<button class="btn sm ghost" id="btnSeed">Cargar reportes iniciales (0004 y 0005)</button>':'')+'</div><div class="tw"><table>'+head+'<tbody>'+rowsHtml(all)+'</tbody></table></div>';
+  bindRows();
+  if($('btnSeed')) $('btnSeed').addEventListener('click', seed);
+});}
+
+function selloSvg(){
+  return '<svg viewBox="0 0 100 100"><defs><radialGradient id="sgr" cx="35%" cy="28%" r="70%"><stop offset="0%" stop-color="#D4A882"/><stop offset="50%" stop-color="#C4906A"/><stop offset="100%" stop-color="#8B5E3C"/></radialGradient></defs>'+
+  '<circle cx="50" cy="50" r="47" fill="none" stroke="#8B5E3C" stroke-width="1" stroke-dasharray="3 2" opacity=".6"/><circle cx="50" cy="50" r="44" fill="url(#sgr)"/><circle cx="50" cy="50" r="39" fill="none" stroke="rgba(255,255,255,.3)" stroke-width=".8"/>'+
+  '<text x="50" y="49" text-anchor="middle" font-family="Georgia,serif" font-size="12" font-weight="700" fill="#fff" letter-spacing="2.5">ALMARA</text><line x1="26" y1="54" x2="74" y2="54" stroke="rgba(255,255,255,.5)" stroke-width=".6"/>'+
+  '<text x="50" y="64" text-anchor="middle" font-family="Arial" font-size="6" fill="#fff" letter-spacing="4">VERIFIED</text><ellipse cx="36" cy="30" rx="16" ry="9" fill="rgba(255,255,255,.16)" transform="rotate(-28 36 30)"/></svg>';
+}
+const ir = (l,v) => '<div class="drow"><span class="dl">'+l+'</span><span class="dv">'+esc(v)+'</span></div>';
+function vDetalle(r){
+  const rc = r.resultado==='RECHAZADO'?'rej':r.resultado==='OBSERVADO'?'obs':'';
+  const code = r.verifyCode || genCodigo(r.id), fotos = safeUrl(r.linkFotos);
+  $('content').innerHTML =
+  '<button class="btn sm ghost" id="back" style="margin-bottom:14px">← Volver</button><div class="rd">'+
+  '<div class="rh"><div><div class="wm">ALMARA</div><div class="vf">V E R I F I E D</div></div><div class="meta">REF: '+esc(r.id)+'<br>FECHA: '+esc(r.fecha)+'<br>INSPECTOR: '+esc(r.inspector)+'</div></div>'+
+  '<div class="tg">Quality Assurance at Origin · Peru</div><div class="rb">'+
+  '<div class="km"><div><div class="l">Muestras</div><div class="v">'+esc(r.muestras)+'</div></div><div><div class="l">Brix promedio</div><div class="v">'+esc(r.brix)+'</div></div><div><div class="l">Def. calidad</div><div class="v">'+f2(r.scoreCalidad)+'%</div></div><div><div class="l">Score total</div><div class="v">'+f2(r.scoreTotal)+'%</div></div></div>'+
+  '<div class="res '+rc+'"><span>'+esc(r.resultado)+'</span><span>Score '+f2(r.scoreTotal)+'%</span></div>'+
+  '<div class="ig"><div><div class="ibt">Información general</div>'+ir('Exportador',r.exportador)+ir('Importador',r.importador)+ir('Contenedor / BL',r.contenedor)+ir('Planta',r.planta)+ir('Ciudad',r.ciudad)+ir('Destino',r.destino)+ir('Hora',r.hora)+'</div>'+
+  '<div><div class="ibt">Identificación del lote</div>'+ir('Producto',r.producto)+ir('Categoría',r.categoria)+ir('Calibres',r.calibres)+ir('Presentación',r.presentacion)+ir('Modalidad',r.modalidad)+ir('Pallets / Cajas',esc(r.pallets)+' / '+esc(r.cajas))+ir('Fecha de empaque',r.fechaEmpaque)+'</div></div>'+
+  '<div class="ibt">Observaciones del inspector</div><div class="obs">'+esc(r.observaciones||'Sin observaciones.')+'</div>'+
+  '<div class="ibt">Registro fotográfico</div>'+(fotos?'<a class="lf" href="'+esc(fotos)+'" target="_blank" rel="noopener">Ver el registro fotográfico completo en Drive →</a>':'<div class="obs" style="color:var(--stone-lt)">Registro fotográfico no disponible.</div>')+
+  '<div class="sello">'+selloSvg()+'<div><div class="t1">Código de verificación</div><div class="t2">'+esc(code)+'</div><div class="t3">Verifica la autenticidad en almara-group.com/portal#verificar</div></div></div>'+
+  '</div></div>';
+  $('back').addEventListener('click',()=>tab('reportes'));
+}
+
+/* ── Nuevo reporte ── */
+const field = (id,l,ph='',type='text') => '<div class="fg"><label>'+l+'</label><input id="'+id+'" type="'+type+'" placeholder="'+ph+'"></div>';
+function vNuevo(){
+  $('content').innerHTML = '<div class="aform"><h3>Registrar reporte de inspección</h3><div class="msg err" id="nerr"></div><div class="msg ok" id="nok"></div>'+
+  '<div class="fs"><div class="fst">Información general</div><div class="g2">'+
+   field('nId','Código del reporte','AV-2026-0006')+field('nFecha','Fecha de inspección','','date')+
+   field('nInsp','Inspector')+field('nHora','Hora','14:00 — 15:00 hrs')+
+   field('nExp','Exportador (nombre exacto del usuario)','Andes Fresh SAC')+field('nImp','Importador (nombre exacto del usuario)','Terra Trading S.A.S.')+
+   field('nCont','Contenedor / BL')+field('nPlanta','Planta de empaque')+field('nCiudad','Ciudad')+field('nDest','País de destino')+'</div></div>'+
+  '<div class="fs"><div class="fst">Lote</div><div class="g2">'+
+   field('nProd','Producto','Uva Red Globe')+field('nCat','Categoría','CAT 1')+field('nCal','Calibres','JJ / J / XL')+field('nPres','Presentación','Canastilla 8.2 kg')+
+   field('nMod','Modalidad','Convencional')+field('nFemp','Fecha de empaque')+field('nPal','Pallets','','number')+field('nCaj','Cajas','','number')+'</div></div>'+
+  '<div class="fs"><div class="fst">Resultados (en %)</div><div class="g3">'+
+   field('nSc','Defectos de calidad','11.10','number')+field('nSn','Defectos de condición','0.80','number')+
+   '<div class="fg"><label>Score total (automático)</label><input id="nSt" readonly></div>'+
+   field('nBrix','Brix promedio','16.5')+field('nMue','N° de muestras','5','number')+
+   '<div class="fg"><label>Resultado (automático)</label><input id="nRes" readonly></div></div></div>'+
+  '<div class="fs"><div class="fst">Observaciones y fotos</div><div class="fg"><label>Observaciones</label><textarea id="nObs" rows="4"></textarea></div>'+field('nFotos','Link de la carpeta de fotos (Drive)','https://drive.google.com/drive/folders/...')+'</div>'+
+  '<button class="btn" id="btnGuardar">GUARDAR REPORTE</button></div>';
+  if(perfil.rol==='inspector') $('nInsp').value = perfil.nombre || '';
+  const calc = ()=>{ const t = parseFloat($('nSc').value||0)+parseFloat($('nSn').value||0); $('nSt').value = t.toFixed(2); $('nRes').value = resultadoDe(t); };
+  $('nSc').addEventListener('input',calc); $('nSn').addEventListener('input',calc); calc();
+  $('btnGuardar').addEventListener('click', guardarReporte);
+}
+function pub(r){ return {id:r.id,producto:r.producto,exportador:r.exportador,importador:r.importador,destino:r.destino,fecha:r.fecha,inspector:r.inspector,scoreTotal:r.scoreTotal,resultado:r.resultado}; }
+async function guardarReporte(){
+  const v = id => $(id).value.trim(); const err = $('nerr'), ok = $('nok'); err.style.display='none'; ok.style.display='none';
+  const id = v('nId').toUpperCase();
+  if(!/^AV-\d{4}-\d{4}$/.test(id)){ err.textContent='El código debe tener el formato AV-2026-0006.'; err.style.display='block'; return; }
+  if(!v('nExp')||!v('nImp')){ err.textContent='Completa exportador e importador.'; err.style.display='block'; return; }
+  const cal = parseFloat(v('nSc')||0), con = parseFloat(v('nSn')||0), tot = Math.round((cal+con)*100)/100;
+  const fRaw = v('nFecha'); const fecha = fRaw ? fRaw.split('-').reverse().join('/') : '';
+  const fotos = v('nFotos');
+  if(fotos && !fotos.startsWith('https://')){ err.textContent='El link de fotos debe empezar con https://'; err.style.display='block'; return; }
+  const code = genCodigo(id);
+  const r = {id,fecha,fechaEmpaque:v('nFemp'),exportador:v('nExp'),importador:v('nImp'),inspector:v('nInsp')||perfil.nombre,producto:v('nProd'),categoria:v('nCat'),calibres:v('nCal'),presentacion:v('nPres'),modalidad:v('nMod'),pallets:v('nPal'),cajas:v('nCaj'),contenedor:v('nCont'),planta:v('nPlanta'),ciudad:v('nCiudad'),destino:v('nDest'),hora:v('nHora'),muestras:parseInt(v('nMue'))||0,brix:v('nBrix'),scoreCalidad:cal,scoreCondicion:con,scoreTotal:tot,resultado:resultadoDe(tot),observaciones:v('nObs'),linkFotos:fotos,verifyCode:code,creadoPor:perfil.nombre||perfil.email,creadoEn:new Date().toISOString()};
+  try{
+    if((await getDoc(doc(db,'reportes',id))).exists()){ err.textContent='Ya existe un reporte con el código '+id+'.'; err.style.display='block'; return; }
+    await setDoc(doc(db,'reportes',id), r);
+    await setDoc(doc(db,'verificaciones',code), pub(r));
+    ok.textContent='Reporte '+id+' guardado. Código de verificación: '+code; ok.style.display='block';
+  }catch(e){ err.textContent='No se pudo guardar. Revisa tus permisos e intenta de nuevo.'; err.style.display='block'; }
+}
+
+/* ── Reportes iniciales (solo admin) ── */
+async function seed(){
+  if(!confirm('Se cargarán (o reemplazarán) los reportes AV-2026-0004 y AV-2026-0005. ¿Continuar?')) return;
+  const base = {pesoProm:'',generadorSO2:''};
+  const lista = [
+   {id:'AV-2026-0004',fecha:'13/10/2026',fechaEmpaque:'10/10/2026 — 12/10/2026',exportador:'Andes Fresh SAC',importador:'Terra Trading S.A.S.',inspector:'Luis Amanduy',producto:'Uva Red Globe',categoria:'CAT 1',calibres:'JJ / J / XL',presentacion:'Canastilla 8.2 kg',modalidad:'Convencional',pallets:'6',cajas:'6',contenedor:'HLBU9952315 / HLCULI3261012680',planta:'SC Packing SAC',ciudad:'Arequipa',destino:'Colombia — Buenaventura',hora:'14:30 — 16:00 hrs',muestras:6,brix:'16.8',scoreCalidad:12.80,scoreCondicion:0.54,scoreTotal:13.33,resultado:'APROBADO',observaciones:'Racimos bien conformados y bayas firmes. Color predominante RG2. Brix entre 15 y 18, promedio 16.8. Calibres predominantes: XL, J y JJ.\n\nHallazgos: pudrición en 3 cajas (1 baya afectada por caja), raquis leñoso en 1 racimo, racimos semipálidos en 3 cajas.',linkFotos:'https://drive.google.com/drive/folders/1Mf4wN34E819FnJY-kmtk13TLAa5sYQGc',verifyCode:'AV-0004-ZU7Z-TQVU'},
+   {id:'AV-2026-0005',fecha:'24/10/2026',fechaEmpaque:'22/10/2026 — 23/10/2026',exportador:'Andes Fresh SAC',importador:'Midi Caraibes',inspector:'Gladys Lozada',producto:'Uva Red Globe',categoria:'CAT 1',calibres:'L / XL / J',presentacion:'Canastilla 8.2 kg',modalidad:'Convencional',pallets:'5',cajas:'5',contenedor:'SZLU5058986 / LMM0617696',planta:'SC Packing',ciudad:'Arequipa',destino:'Pointe a Pitre — Guadalupe',hora:'14:00 — 15:00 hrs',muestras:5,brix:'16.5',scoreCalidad:11.10,scoreCondicion:0.80,scoreTotal:11.90,resultado:'APROBADO',observaciones:'Se evaluaron 5 pallets de uva Red Globe con Brix entre 16 y 17, evidenciando adecuada madurez y condición. Color predominante RG3 y RG4. Aproximadamente 4% de fruta descalibrada, algunos racimos semipálidos, defectos de oídium y russet, y algunas bayas colapsadas. La fruta se encuentra apta para exportación y en buenas condiciones de temperatura.',linkFotos:'https://drive.google.com/drive/folders/1XIERXgRymigsHPCYEns2GR-3mk5lDtN3',verifyCode:'AV-0005-2U7Z-SRVU'}
+  ];
+  try{
+    for(const r of lista){ const full={...base,...r,creadoPor:perfil.nombre,creadoEn:new Date().toISOString()}; await setDoc(doc(db,'reportes',r.id),full); await setDoc(doc(db,'verificaciones',r.verifyCode),pub(r)); }
+    alert('Reportes cargados.'); vReportes();
+  }catch(e){ alert('No se pudieron cargar los reportes.'); }
+}
+
+/* ── Usuarios (solo admin) ── */
+let secAuth = null;
+async function vUsuarios(){ await safe(async()=>{
+  const s = await getDocs(collection(db,'usuarios'));
+  const us = s.docs.map(d=>({...d.data(),uid:d.id})).sort((a,b)=>String(a.nombre).localeCompare(String(b.nombre)));
+  $('content').innerHTML =
+   '<div class="aform" style="margin-bottom:20px"><h3>Crear usuario</h3><div class="msg err" id="uerr"></div><div class="msg ok" id="uok"></div><div class="g2">'+
+   field('uNombre','Nombre (igual al del reporte)','Terra Trading S.A.S.')+field('uEmpresa','Empresa / cargo','Importador — Colombia')+
+   field('uEmail','Correo de acceso','correo@empresa.com','email')+field('uPass','Contraseña inicial (mínimo 6)','','text')+
+   '<div class="fg"><label>Rol</label><select id="uRol"><option value="importador">Importador</option><option value="exportador">Exportador</option><option value="inspector">Inspector</option><option value="admin">Admin</option></select></div></div>'+
+   '<button class="btn" id="btnCrearU">CREAR USUARIO</button></div>'+
+   '<div class="sh"><div class="st">Usuarios ('+us.length+')</div></div><div class="tw"><table><thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th></th></tr></thead><tbody>'+
+   us.map(u=>'<tr><td><strong>'+esc(u.nombre)+'</strong><br><span style="color:var(--stone);font-size:11px">'+esc(u.empresa)+'</span></td><td>'+esc(u.email)+'</td><td>'+esc(u.rol)+'</td><td>'+(u.activo===false?'<span class="badge brej">Inactivo</span>':'<span class="badge bok">Activo</span>')+'</td><td>'+(u.uid===perfil.uid?'':'<button class="btn sm ghost" data-a="tog" data-u="'+esc(u.uid)+'" data-v="'+(u.activo===false?'1':'0')+'">'+(u.activo===false?'Activar':'Desactivar')+'</button> <button class="btn danger" data-a="del" data-u="'+esc(u.uid)+'">Quitar</button>')+'</td></tr>').join('')+
+   '</tbody></table></div><div class="note">"Quitar" borra el perfil y bloquea el acceso. Para borrar también la cuenta de correo, elimínala en Firebase → Authentication.</div>';
+  $('btnCrearU').addEventListener('click', crearUsuario);
+  $('content').querySelectorAll('[data-a]').forEach(b=>b.addEventListener('click', async()=>{
+    try{
+      if(b.dataset.a==='tog') await updateDoc(doc(db,'usuarios',b.dataset.u),{activo:b.dataset.v==='1'});
+      else if(confirm('¿Quitar este usuario?')) await deleteDoc(doc(db,'usuarios',b.dataset.u));
+      vUsuarios();
+    }catch(e){ alert('No se pudo completar la acción.'); }
+  }));
+});}
+async function crearUsuario(){
+  const v = id => $(id).value.trim(); const err=$('uerr'), ok=$('uok'); err.style.display='none'; ok.style.display='none';
+  if(!v('uNombre')||!v('uEmail')||v('uPass').length<6){ err.textContent='Completa nombre, correo y una contraseña de mínimo 6 caracteres.'; err.style.display='block'; return; }
+  try{
+    if(!secAuth) secAuth = getAuth(initializeApp(firebaseConfig,'secundaria'));
+    const cred = await createUserWithEmailAndPassword(secAuth, v('uEmail'), v('uPass'));
+    await signOut(secAuth);
+    await setDoc(doc(db,'usuarios',cred.user.uid),{nombre:v('uNombre'),empresa:v('uEmpresa'),email:v('uEmail'),rol:$('uRol').value,activo:true});
+    ok.textContent='Usuario creado. Comparte con el cliente su correo y contraseña inicial por un medio privado.'; ok.style.display='block';
+    setTimeout(vUsuarios,1800);
+  }catch(e){
+    err.textContent = (e && e.code==='auth/email-already-in-use') ? 'Ese correo ya tiene una cuenta.' : (e && e.code==='auth/weak-password') ? 'La contraseña es muy débil.' : 'No se pudo crear el usuario.';
+    err.style.display='block';
+  }
+}
+</script>
+</body>
+</html>
