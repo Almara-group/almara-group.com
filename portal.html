@@ -177,8 +177,8 @@ function genCodigo(id){
   const toCode=(v,len)=>{let r='',x=Math.abs(v);for(let i=0;i<len;i++){r+=chars[x%chars.length];x=Math.floor(x/chars.length)||1;}return r;};
   return 'AV-'+n.slice(-4)+'-'+toCode(h1,4)+'-'+toCode(h2,4);
 }
-const resultadoDe = t => t<=15 ? 'APROBADO' : (t<=25 ? 'OBSERVADO' : 'RECHAZADO');
-const badge = r => r==='APROBADO' ? '<span class="badge bok">APROBADO</span>' : r==='OBSERVADO' ? '<span class="badge bob">OBSERVADO</span>' : r==='RECHAZADO' ? '<span class="badge brej">RECHAZADO</span>' : esc(r);
+const scoreOf = r => Math.round((100-num(r.scoreTotal))*100)/100;
+const scoreChip = r => '<span class="badge bok">'+f2(scoreOf(r))+'%</span>';
 const safeUrl = u => (typeof u==='string' && u.startsWith('https://')) ? u : '';
 
 /* ── Vistas ── */
@@ -215,8 +215,7 @@ async function verificar(){
     if(s.exists()){
       const r = s.data();
       out.innerHTML = '<div class="vstat ok"><strong>Reporte auténtico — VERIFICADO</strong><span>Emitido por ALMARA VERIFIED.</span></div>'+
-        '<div>'+[['Reporte',r.id],['Producto',r.producto],['Exportador',r.exportador],['Importador',r.importador],['Destino',r.destino],['Fecha',r.fecha],['Inspector',r.inspector],['Score',f2(r.scoreTotal)+'%']].map(([l,v])=>'<div class="drow"><span class="dl">'+l+'</span><span class="dv">'+esc(v)+'</span></div>').join('')+
-        '<div class="drow"><span class="dl">Resultado</span><span class="dv">'+badge(r.resultado)+'</span></div></div>';
+        '<div>'+[['Reporte',r.id],['Producto',r.producto],['Exportador',r.exportador],['Importador',r.importador],['Destino',r.destino],['Fecha',r.fecha],['Inspector',r.inspector],['Score',f2(scoreOf(r))+'%']].map(([l,v])=>'<div class="drow"><span class="dl">'+l+'</span><span class="dv">'+esc(v)+'</span></div>').join('')+'</div>';
     } else {
       out.innerHTML='<div class="vstat fail"><strong>No verificado — INVÁLIDO</strong><span>Este código no corresponde a ningún reporte emitido por ALMARA VERIFIED.</span></div>';
     }
@@ -273,16 +272,15 @@ async function getReportes(){
   cache = s.docs.map(d=>d.data()).sort((a,b)=>String(b.id).localeCompare(String(a.id)));
   return cache;
 }
-const rowsHtml = list => list.length ? list.map(r=>'<tr class="cl" data-id="'+esc(r.id)+'"><td><strong>'+esc(r.id)+'</strong></td><td>'+esc(r.fecha)+'</td><td>'+esc(r.producto)+'</td><td>'+esc(r.exportador)+'</td><td>'+esc(r.importador)+'</td><td><strong>'+f2(r.scoreTotal)+'%</strong></td><td>'+badge(r.resultado)+'</td></tr>').join('') : '<tr><td colspan="7" class="empty">Aún no hay reportes.</td></tr>';
-const head = '<thead><tr><th>Código</th><th>Fecha</th><th>Producto</th><th>Exportador</th><th>Importador</th><th>Score</th><th>Resultado</th></tr></thead>';
+const rowsHtml = list => list.length ? list.map(r=>'<tr class="cl" data-id="'+esc(r.id)+'"><td><strong>'+esc(r.id)+'</strong></td><td>'+esc(r.fecha)+'</td><td>'+esc(r.producto)+'</td><td>'+esc(r.exportador)+'</td><td>'+esc(r.importador)+'</td><td><strong>'+f2(scoreOf(r))+'%</strong></td></tr>').join('') : '<tr><td colspan="6" class="empty">Aún no hay reportes.</td></tr>';
+const head = '<thead><tr><th>Código</th><th>Fecha</th><th>Producto</th><th>Exportador</th><th>Importador</th><th>Score</th></tr></thead>';
 function bindRows(){ $('content').querySelectorAll('tr.cl').forEach(tr=>tr.addEventListener('click',()=>{ const r=cache.find(x=>x.id===tr.dataset.id); if(r) vDetalle(r); })); }
 async function safe(fn){ try{ await fn(); }catch(e){ $('content').innerHTML='<div class="note">No se pudieron cargar los datos. Revisa tu conexión e intenta de nuevo.</div>'; } }
 
 /*DASH_START*/
-const COL = {APROBADO:'#4A6741',OBSERVADO:'#C4906A',RECHAZADO:'#8B0000'};
-const tier = v => v<=15 ? COL.APROBADO : (v<=25 ? COL.OBSERVADO : COL.RECHAZADO);
+const SAGE='#4A6741';
 const pf = s => { const m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(s||'')); return m ? new Date(+m[3],+m[2]-1,+m[1]) : null; };
-const F = {per:'all',prod:'',dest:'',res:'',exp:'',imp:''};
+const F = {per:'all',prod:'',dest:'',exp:'',imp:''};
 const uniq = (list,k) => [...new Set(list.map(r=>r[k]).filter(Boolean))].sort();
 const avgOf = (list,fn) => list.length ? list.reduce((s,r)=>s+fn(r),0)/list.length : null;
 
@@ -292,7 +290,6 @@ function aplicarFiltros(list){
     if(days){ const d=pf(r.fecha); if(!d || (now-d)/864e5>days) return false; }
     if(F.prod && r.producto!==F.prod) return false;
     if(F.dest && r.destino!==F.dest) return false;
-    if(F.res && r.resultado!==F.res) return false;
     if(F.exp && r.exportador!==F.exp) return false;
     if(F.imp && r.importador!==F.imp) return false;
     return true;
@@ -302,75 +299,72 @@ function selHtml(id,label,opts,val,all){
   return '<div class="ff"><label>'+label+'</label><select data-f="'+id+'"><option value="">'+all+'</option>'+opts.map(o=>'<option value="'+esc(o)+'"'+(o===val?' selected':'')+'>'+esc(o)+'</option>').join('')+'</select></div>';
 }
 function lineChart(list){
-  const pts = list.map(r=>({d:pf(r.fecha),y:num(r.scoreTotal),r})).filter(p=>p.d).sort((a,b)=>a.d-b.d);
+  const pts = list.map(r=>({d:pf(r.fecha),y:scoreOf(r),r})).filter(p=>p.d).sort((a,b)=>a.d-b.d);
   if(!pts.length) return '<div class="nodata">Sin reportes en este período.</div>';
   const W=720,H=270,m={l:42,r:32,t:14,b:36}, iw=W-m.l-m.r, ih=H-m.t-m.b;
-  const ymax = Math.max(30, Math.ceil((Math.max(...pts.map(p=>p.y))+3)/5)*5);
+  const ymin = Math.max(0, Math.floor((Math.min(...pts.map(p=>p.y))-5)/10)*10), ymax = 100;
   let x0=Math.min(...pts.map(p=>p.d.getTime())), x1=Math.max(...pts.map(p=>p.d.getTime()));
   if(x0===x1){ x0-=864e5*20; x1+=864e5*20; } else { const pad=(x1-x0)*0.04; x0-=pad; x1+=pad; }
-  const X=t=>m.l+(t-x0)/(x1-x0)*iw, Y=v=>m.t+ih-(v/ymax)*ih;
+  const X=t=>m.l+(t-x0)/(x1-x0)*iw, Y=v=>m.t+ih-((v-ymin)/(ymax-ymin))*ih;
   let s='<div class="chartwrap"><svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto" role="img" aria-label="Evolución del score">';
-  s+='<rect x="'+m.l+'" y="'+Y(15)+'" width="'+iw+'" height="'+(Y(0)-Y(15))+'" fill="#EBF0EA"/>';
-  s+='<rect x="'+m.l+'" y="'+Y(25)+'" width="'+iw+'" height="'+(Y(15)-Y(25))+'" fill="#FDF6F0"/>';
-  s+='<rect x="'+m.l+'" y="'+Y(ymax)+'" width="'+iw+'" height="'+(Y(25)-Y(ymax))+'" fill="#FDECEA"/>';
-  for(let v=0; v<=ymax; v+=5){ s+='<line x1="'+m.l+'" x2="'+(W-m.r)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" stroke="#E4E1DA" stroke-width="'+((v===15||v===25)?1.2:.6)+'"'+((v===15||v===25)?' stroke-dasharray="4 3"':'')+'/><text x="'+(m.l-7)+'" y="'+(Y(v)+3.5)+'" text-anchor="end" font-size="10" fill="#7A7A6E">'+v+'%</text>'; }
+  for(let v=ymin; v<=ymax; v+=10){ s+='<line x1="'+m.l+'" x2="'+(W-m.r)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" stroke="#E4E1DA" stroke-width=".6"/><text x="'+(m.l-7)+'" y="'+(Y(v)+3.5)+'" text-anchor="end" font-size="10" fill="#7A7A6E">'+v+'%</text>'; }
   const nl = Math.min(5,pts.length>1?5:1);
   for(let i=0;i<nl;i++){ const t = nl===1 ? (x0+x1)/2 : x0+(x1-x0)*i/(nl-1); const d=new Date(t);
     s+='<text x="'+X(t)+'" y="'+(H-12)+'" text-anchor="middle" font-size="10" fill="#7A7A6E">'+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+String(d.getFullYear()).slice(2)+'</text>'; }
   if(pts.length>1) s+='<polyline fill="none" stroke="#2C2C28" stroke-width="1.6" stroke-linejoin="round" points="'+pts.map(p=>X(p.d.getTime())+','+Y(p.y)).join(' ')+'"/>';
-  pts.forEach(p=>{ s+='<circle data-open="'+esc(p.r.id)+'" cx="'+X(p.d.getTime())+'" cy="'+Y(p.y)+'" r="7" fill="'+(COL[p.r.resultado]||'#7A7A6E')+'" stroke="#fff" stroke-width="2.5" style="cursor:pointer"><title>'+esc(p.r.id)+' · '+esc(p.r.producto)+' · '+p.y.toFixed(2)+'% · '+esc(p.r.resultado)+'</title></circle>'; });
-  return s+'</svg></div><div class="legend"><span><i style="background:#4A6741"></i>Aprobado</span><span><i style="background:#C4906A"></i>Observado</span><span><i style="background:#8B0000"></i>Rechazado</span><span>· Zonas: verde ≤ 15%, crema 15–25%, rojo &gt; 25%</span><span>· Toca un punto para abrir el reporte</span></div>';
+  pts.forEach(p=>{ s+='<circle data-open="'+esc(p.r.id)+'" cx="'+X(p.d.getTime())+'" cy="'+Y(p.y)+'" r="7" fill="'+SAGE+'" stroke="#fff" stroke-width="2.5" style="cursor:pointer"><title>'+esc(p.r.id)+' · '+esc(p.r.producto)+' · Score '+p.y.toFixed(2)+'%</title></circle>'; });
+  return s+'</svg></div><div class="legend"><span>Toca un punto para abrir el reporte</span></div>';
+}
+function monthChart(list){
+  const g={}; list.forEach(r=>{ const d=pf(r.fecha); if(!d) return; const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); g[k]=(g[k]||0)+1; });
+  const ks=Object.keys(g).sort(); if(!ks.length) return '<div class="nodata">Sin reportes en este período.</div>';
+  const MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const mx=Math.max(...ks.map(k=>g[k]));
+  return '<div style="display:flex;align-items:flex-end;gap:10px;height:150px;padding-top:8px">'+ks.map(k=>{ const h=Math.max(6,g[k]/mx*110), p=k.split('-');
+    return '<div style="flex:1;max-width:70px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%"><div style="font-size:12px;font-weight:600;color:'+SAGE+'">'+g[k]+'</div><div style="width:100%;height:'+h+'px;background:'+SAGE+';border-radius:4px 4px 0 0"></div><div style="font-size:11px;color:#7A7A6E;margin-top:4px">'+MES[+p[1]-1]+' '+p[0].slice(2)+'</div></div>'; }).join('')+'</div>';
 }
 function groupRows(list,key){
   const g = {}; list.forEach(r=>{ const k=r[key]||'—'; (g[k]=g[k]||[]).push(r); });
-  return Object.keys(g).map(k=>{ const l=g[k], ap=l.filter(r=>r.resultado==='APROBADO').length;
-    return {label:k, n:l.length, sub:l.length+(l.length===1?' reporte':' reportes')+' · '+Math.round(ap/l.length*100)+'% aprobados',
-      cal:avgOf(l,r=>num(r.scoreCalidad)), con:avgOf(l,r=>num(r.scoreCondicion)), tot:avgOf(l,r=>num(r.scoreTotal))}; })
-    .sort((a,b)=>b.n-a.n || a.tot-b.tot);
+  return Object.keys(g).map(k=>{ const l=g[k], sc=avgOf(l,r=>scoreOf(r));
+    return {label:k, n:l.length, sub:l.length+(l.length===1?' reporte':' reportes'), tot:sc}; })
+    .sort((a,b)=>b.n-a.n || b.tot-a.tot);
 }
 function barRows(rows){
   if(!rows.length) return '<div class="nodata">Sin datos para los filtros elegidos.</div>';
-  return rows.map(r=>{ const wc=Math.min(100,r.cal/30*100), wn=Math.min(100-wc,r.con/30*100), c=tier(r.tot);
+  return rows.map(r=>{ const w=Math.max(0,Math.min(100,r.tot));
     return '<div class="bar-row"><div style="min-width:0"><div class="bl" title="'+esc(r.label)+'">'+esc(r.label)+'</div><div class="bs">'+esc(r.sub)+'</div></div>'+
-      '<div class="bar-track"><div class="bf" style="width:'+wc+'%;background:'+c+'"></div><div class="bf" style="width:'+wn+'%;background:'+c+';opacity:.5"></div><i class="mk" style="left:50%"></i><i class="mk" style="left:83.3%"></i></div>'+
-      '<div class="bv" style="color:'+c+'">'+r.tot.toFixed(1)+'%</div></div>'; }).join('')+
-    '<div class="legend"><span><i style="background:#7A7A6E"></i>Calidad</span><span><i style="background:#7A7A6E;opacity:.5"></i>Condición</span><span>| líneas en 15% y 25%</span></div>';
-}
-function donut(list){
-  if(!list.length) return '<div class="nodata">Sin datos.</div>';
-  const C=2*Math.PI*40, n=list.length; let off=0, segs='', leg='';
-  ['APROBADO','OBSERVADO','RECHAZADO'].forEach(k=>{ const c=list.filter(r=>r.resultado===k).length; if(!c) return; const len=c/n*C;
-    segs+='<circle cx="60" cy="60" r="40" fill="none" stroke="'+COL[k]+'" stroke-width="16" stroke-dasharray="'+len+' '+(C-len)+'" stroke-dashoffset="'+(-off)+'" transform="rotate(-90 60 60)"/>'; off+=len;
-    leg+='<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0"><span><i style="display:inline-block;width:9px;height:9px;background:'+COL[k]+';margin-right:7px"></i>'+k+'</span><strong>'+c+'</strong></div>'; });
-  return '<div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap"><svg viewBox="0 0 120 120" width="112" height="112">'+segs+'<text x="60" y="58" text-anchor="middle" font-size="22" font-weight="700" fill="#2C2C28">'+n+'</text><text x="60" y="73" text-anchor="middle" font-size="8" fill="#7A7A6E">LOTES</text></svg><div style="flex:1;min-width:120px">'+leg+'</div></div>';
+      '<div class="bar-track"><div class="bf" style="width:'+w+'%;background:'+SAGE+'"></div></div>'+
+      '<div class="bv" style="color:'+SAGE+'">'+r.tot.toFixed(1)+'%</div></div>'; }).join('');
 }
 function dashHtml(all,rol){
   const L = aplicarFiltros(all).slice().sort((a,b)=>String(b.id).localeCompare(String(a.id)));
-  const ap = L.filter(r=>r.resultado==='APROBADO').length, avg = avgOf(L,r=>num(r.scoreTotal));
+  const avg = avgOf(L,r=>scoreOf(r));
   const prods = uniq(L,'producto'), brixs = L.map(r=>parseFloat(r.brix)).filter(v=>isFinite(v)&&v>0), bavg = (prods.length===1 && brixs.length) ? brixs.reduce((s,v)=>s+v,0)/brixs.length : null;
   const staff = rol==='admin'||rol==='inspector';
   const sub = staff ? 'Operación completa de ALMARA VERIFIED' : rol==='importador' ? 'Calidad de tus proveedores, verificada en origen antes del cargue' : 'Calidad de tus despachos, verificada en origen antes del cargue';
   const per = '<div class="ff"><label>Período</label><select data-f="per">'+[['all','Todo el historial'],['30','Últimos 30 días'],['90','Últimos 90 días'],['365','Últimos 12 meses']].map(([v,l])=>'<option value="'+v+'"'+(F.per===v?' selected':'')+'>'+l+'</option>').join('')+'</select></div>';
-  let filt = per + selHtml('prod','Producto',uniq(all,'producto'),F.prod,'Todos') + selHtml('dest','Destino',uniq(all,'destino'),F.dest,'Todos') + selHtml('res','Resultado',['APROBADO','OBSERVADO','RECHAZADO'],F.res,'Todos');
+  let filt = per + selHtml('prod','Producto',uniq(all,'producto'),F.prod,'Todos') + selHtml('dest','Destino',uniq(all,'destino'),F.dest,'Todos');
   if(staff) filt += selHtml('exp','Exportador',uniq(all,'exportador'),F.exp,'Todos') + selHtml('imp','Importador',uniq(all,'importador'),F.imp,'Todos');
   else if(rol==='importador') filt += selHtml('exp','Proveedor',uniq(all,'exportador'),F.exp,'Todos');
   else filt += selHtml('imp','Cliente',uniq(all,'importador'),F.imp,'Todos');
-  const panels = [['Calidad por producto','Score promedio por producto, separado en calidad y condición','producto']];
+  const panels = [['Score por producto','Score promedio por producto','producto']];
   if(staff) panels.push(['Por exportador','Quién despacha mejor fruta','exportador'],['Por importador','Calidad recibida por cliente','importador'],['Por inspector','Reportes y score por inspector','inspector']);
   else if(rol==='importador') panels.push(['Por proveedor','Compara la calidad de cada exportador','exportador'],['Por destino','Calidad según el puerto de destino','destino']);
   else panels.push(['Por cliente','Calidad entregada a cada importador','importador'],['Por destino','Calidad según el puerto de destino','destino']);
   let rows=''; for(let i=0;i<panels.length;i+=2){ const ch=panels.slice(i,i+2);
     rows+='<div class="dgrid2'+(ch.length===1?' one':'')+'">'+ch.map(([t,s,k])=>'<div class="panel"><h4>'+t+'</h4><div class="sub">'+s+'</div>'+barRows(groupRows(L,k))+'</div>').join('')+'</div>'; }
-  const warn = L.filter(r=>r.resultado!=='APROBADO').sort((a,b)=>String(b.id).localeCompare(String(a.id))).slice(0,4);
-  const alerts = warn.length ? warn.map(r=>'<div class="alert-item" data-open="'+esc(r.id)+'"><span><strong>'+esc(r.id)+'</strong><br><span style="color:var(--stone);font-size:11px">'+esc(r.producto)+' · '+esc(r.fecha)+'</span></span>'+badge(r.resultado)+'</div>').join('') : '<div class="ok-note">Todos los lotes de este período están aprobados.</div>';
-  const kc = avg===null ? 'var(--ink)' : tier(avg), kt = avg===null ? '' : avg<=15 ? 'Dentro de lo aceptable' : avg<=25 ? 'Lotes en observación' : 'Requiere atención';
+  const low = L.slice().sort((a,b)=>scoreOf(a)-scoreOf(b)).slice(0,4);
+  const alerts = low.length ? low.map(r=>'<div class="alert-item" data-open="'+esc(r.id)+'"><span><strong>'+esc(r.id)+'</strong><br><span style="color:var(--stone);font-size:11px">'+esc(r.producto)+' · '+esc(r.fecha)+'</span></span>'+scoreChip(r)+'</div>').join('') : '<div class="ok-note">Sin reportes en este período.</div>';
+  const best = L.length ? Math.max(...L.map(scoreOf)) : null;
+  const kc = 'var(--sage)';
   return '<div class="dh"><h2>Panel de calidad</h2><p>'+sub+'</p></div><div class="filters">'+filt+'</div>'+
    '<div class="krow"><div class="k"><div class="l">Reportes</div><div class="v">'+L.length+'</div><div class="s">de '+all.length+' en total</div></div>'+
-   '<div class="k"><div class="l">Aprobación</div><div class="v g">'+(L.length?Math.round(ap/L.length*100)+'%':'—')+'</div><div class="s">'+ap+' de '+L.length+' lotes</div></div>'+
-   '<div class="k"><div class="l">Score promedio</div><div class="v" style="color:'+kc+'">'+(avg===null?'—':avg.toFixed(1)+'%')+'</div><div class="d" style="color:'+kc+'">'+kt+'</div></div>'+
+   '<div class="k"><div class="l">Mejor score</div><div class="v g">'+(best===null?'—':best.toFixed(1)+'%')+'</div><div class="s">entre los lotes del período</div></div>'+
+   '<div class="k"><div class="l">Score promedio</div><div class="v" style="color:'+kc+'">'+(avg===null?'—':avg.toFixed(1)+'%')+'</div><div class="s">Promedio de los lotes</div></div>'+
    '<div class="k"><div class="l">Brix promedio</div><div class="v">'+(bavg===null?'—':bavg.toFixed(1))+'</div><div class="s">'+(bavg!==null?esc(prods[0]):(prods.length>1?'Filtra por producto para verlo':'Sin datos'))+'</div></div></div>'+
-   '<div class="dgrid"><div class="panel"><h4>Evolución del score</h4><div class="sub">Defectos totales por lote en el tiempo. Mientras más abajo, mejor.</div>'+lineChart(L)+'</div>'+
-   '<div><div class="panel" style="margin-bottom:16px"><h4>Resultados</h4><div class="sub">Distribución de los lotes</div>'+donut(L)+'</div><div class="panel"><h4>Requieren atención</h4><div class="sub">Lotes observados o rechazados</div>'+alerts+'</div></div></div>'+
+   '<div class="dgrid"><div class="panel"><h4>Evolución del score</h4><div class="sub">Score de cada lote en el tiempo (100% menos defectos). Mientras más alto, mejor.</div>'+lineChart(L)+'</div>'+
+   '<div><div class="panel"><h4>Lotes con menor score</h4><div class="sub">Los cuatro más bajos del período</div>'+alerts+'</div></div></div>'+
+   '<div class="panel" style="margin-bottom:14px"><h4>Contenedores inspeccionados por mes</h4><div class="sub">Un reporte = un contenedor inspeccionado</div>'+monthChart(L)+'</div>'+
    rows+
    '<div class="sh"><div class="st">Últimos reportes</div></div><div class="tw"><table>'+head+'<tbody>'+rowsHtml(L.slice(0,5))+'</tbody></table></div>';
 }
@@ -390,16 +384,15 @@ async function vDashboard(){ await safe(async()=>{
 async function vReportes(){ await safe(async()=>{
   const all = await getReportes();
   $('content').innerHTML = '<div class="sh"><div class="st" id="rcount"></div>'+(perfil.rol==='admin'?'<button class="btn sm ghost" id="btnSeed">Cargar reportes iniciales (0004 y 0005)</button>':'')+'</div>'+
-    '<div class="filters"><div class="ff" style="flex:1;min-width:200px"><label>Buscar</label><input id="rq" placeholder="Código, empresa, producto, contenedor…"></div>'+
-    '<div class="ff"><label>Resultado</label><select id="rr"><option value="">Todos</option><option>APROBADO</option><option>OBSERVADO</option><option>RECHAZADO</option></select></div></div>'+
+    '<div class="filters"><div class="ff" style="flex:1;min-width:200px"><label>Buscar</label><input id="rq" placeholder="Código, empresa, producto, contenedor…"></div>'+'</div>'+
     '<div class="tw"><table>'+head+'<tbody id="rbody"></tbody></table></div>';
   const draw = ()=>{
-    const q=$('rq').value.trim().toLowerCase(), rs=$('rr').value;
-    const l = all.filter(r=>(!rs||r.resultado===rs) && (!q || [r.id,r.exportador,r.importador,r.producto,r.contenedor,r.destino].join(' ').toLowerCase().includes(q)));
+    const q=$('rq').value.trim().toLowerCase();
+    const l = all.filter(r=>(!q || [r.id,r.exportador,r.importador,r.producto,r.contenedor,r.destino].join(' ').toLowerCase().includes(q)));
     $('rcount').textContent = 'Reportes ('+l.length+(l.length!==all.length?' de '+all.length:'')+')';
     $('rbody').innerHTML = rowsHtml(l); bindRows();
   };
-  $('rq').addEventListener('input',draw); $('rr').addEventListener('change',draw); draw();
+  $('rq').addEventListener('input',draw); draw();
   if($('btnSeed')) $('btnSeed').addEventListener('click', seed);
 });}
 
@@ -411,21 +404,31 @@ function selloSvg(){
 }
 const ir = (l,v) => '<div class="drow"><span class="dl">'+l+'</span><span class="dv">'+esc(v)+'</span></div>';
 function vDetalle(r){
-  const rc = r.resultado==='RECHAZADO'?'rej':r.resultado==='OBSERVADO'?'obs':'';
   const code = r.verifyCode || genCodigo(r.id), fotos = safeUrl(r.linkFotos);
   $('content').innerHTML =
   '<button class="btn sm ghost" id="back" style="margin-bottom:14px">← Volver</button><div class="rd">'+
   '<div class="rh"><div><div class="wm">ALMARA</div><div class="vf">V E R I F I E D</div></div><div class="meta">REF: '+esc(r.id)+'<br>FECHA: '+esc(r.fecha)+'<br>INSPECTOR: '+esc(r.inspector)+'</div></div>'+
   '<div class="tg">Quality Assurance at Origin · Peru</div><div class="rb">'+
-  '<div class="km"><div><div class="l">Muestras</div><div class="v">'+esc(r.muestras)+'</div></div><div><div class="l">Brix promedio</div><div class="v">'+esc(r.brix)+'</div></div><div><div class="l">Def. calidad</div><div class="v">'+f2(r.scoreCalidad)+'%</div></div><div><div class="l">Score total</div><div class="v">'+f2(r.scoreTotal)+'%</div></div></div>'+
-  '<div class="res '+rc+'"><span>'+esc(r.resultado)+'</span><span>Score '+f2(r.scoreTotal)+'%</span></div>'+
+  '<div class="km"><div><div class="l">Muestras</div><div class="v">'+esc(r.muestras)+'</div></div><div><div class="l">Brix promedio</div><div class="v">'+esc(r.brix)+'</div></div><div><div class="l">Def. calidad</div><div class="v">'+f2(r.scoreCalidad)+'%</div></div><div><div class="l">Score</div><div class="v">'+f2(scoreOf(r))+'%</div></div></div>'+
+  '<div class="res"><span>SCORE</span><span>'+f2(scoreOf(r))+'%</span></div>'+
   '<div class="ig"><div><div class="ibt">Información general</div>'+ir('Exportador',r.exportador)+ir('Importador',r.importador)+ir('Contenedor / BL',r.contenedor)+ir('Planta',r.planta)+ir('Ciudad',r.ciudad)+ir('Destino',r.destino)+ir('Hora',r.hora)+'</div>'+
   '<div><div class="ibt">Identificación del lote</div>'+ir('Producto',r.producto)+ir('Categoría',r.categoria)+ir('Calibres',r.calibres)+ir('Presentación',r.presentacion)+ir('Modalidad',r.modalidad)+ir('Pallets / Cajas',esc(r.pallets)+' / '+esc(r.cajas))+ir('Fecha de empaque',r.fechaEmpaque)+'</div></div>'+
   '<div class="ibt">Observaciones del inspector</div><div class="obs">'+esc(r.observaciones||'Sin observaciones.')+'</div>'+
   '<div class="ibt">Registro fotográfico</div>'+(fotos?'<a class="lf" href="'+esc(fotos)+'" target="_blank" rel="noopener">Ver el registro fotográfico completo en Drive →</a>':'<div class="obs" style="color:var(--stone-lt)">Registro fotográfico no disponible.</div>')+
+  (safeUrl(r.linkPdf)?'<a class="lf" href="'+esc(safeUrl(r.linkPdf))+'" target="_blank" rel="noopener">Descargar el informe en PDF →</a>':'')+
+  (perfil.rol==='admin'?'<div class="ibt" style="margin-top:6px">Editar enlaces (solo administración)</div><div class="g2"><div class="fg"><label>Link de fotos (Drive)</label><input id="eFotos" value="'+esc(r.linkFotos||'').replace(/^—$/,'')+'" placeholder="https://drive.google.com/drive/folders/..."></div><div class="fg"><label>Link del informe PDF</label><input id="ePdf" value="'+esc(r.linkPdf||'').replace(/^—$/,'')+'" placeholder="https://drive.google.com/file/d/..."></div></div><button class="btn sm" id="btnEnlaces">GUARDAR ENLACES</button><div class="msg ok" id="eok"></div><div class="msg err" id="eerr"></div><div style="height:18px"></div>':'')+
   '<div class="sello">'+selloSvg()+'<div><div class="t1">Código de verificación</div><div class="t2">'+esc(code)+'</div><div class="t3">Verifica la autenticidad en almara-group.com/portal#verificar</div></div></div>'+
   '</div></div>';
   $('back').addEventListener('click',()=>tab('reportes'));
+  if($('btnEnlaces')) $('btnEnlaces').addEventListener('click', async ()=>{
+    const f=$('eFotos').value.trim(), d=$('ePdf').value.trim(), ok=$('eok'), er=$('eerr'); ok.style.display='none'; er.style.display='none';
+    if((f&&!f.startsWith('https://'))||(d&&!d.startsWith('https://'))){ er.textContent='Los enlaces deben empezar con https://'; er.style.display='block'; return; }
+    try{
+      await updateDoc(doc(db,'reportes',r.id),{linkFotos:f,linkPdf:d});
+      r.linkFotos=f; r.linkPdf=d; const c=cache.find(x=>x.id===r.id); if(c){ c.linkFotos=f; c.linkPdf=d; }
+      ok.textContent='Enlaces guardados.'; ok.style.display='block'; setTimeout(()=>vDetalle(r),900);
+    }catch(e){ er.textContent='No se pudo guardar. Revisa tu conexión e intenta de nuevo.'; er.style.display='block'; }
+  });
 }
 
 /* ── Nuevo reporte ── */
@@ -442,28 +445,29 @@ function vNuevo(){
    field('nMod','Modalidad','Convencional')+field('nFemp','Fecha de empaque')+field('nPal','Pallets','','number')+field('nCaj','Cajas','','number')+'</div></div>'+
   '<div class="fs"><div class="fst">Resultados (en %)</div><div class="g3">'+
    field('nSc','Defectos de calidad','11.10','number')+field('nSn','Defectos de condición','0.80','number')+
-   '<div class="fg"><label>Score total (automático)</label><input id="nSt" readonly></div>'+
-   field('nBrix','Brix promedio','16.5')+field('nMue','N° de muestras','5','number')+
-   '<div class="fg"><label>Resultado (automático)</label><input id="nRes" readonly></div></div></div>'+
-  '<div class="fs"><div class="fst">Observaciones y fotos</div><div class="fg"><label>Observaciones</label><textarea id="nObs" rows="4"></textarea></div>'+field('nFotos','Link de la carpeta de fotos (Drive)','https://drive.google.com/drive/folders/...')+'</div>'+
+   '<div class="fg"><label>Score (100% menos defectos) — editable</label><input id="nSt" type="number" step="0.01"></div>'+
+   field('nBrix','Brix promedio','16.5')+field('nMue','N° de muestras','5','number')+'</div></div>'+
+  '<div class="fs"><div class="fst">Observaciones y fotos</div><div class="fg"><label>Observaciones</label><textarea id="nObs" rows="4"></textarea></div>'+field('nFotos','Link de la carpeta de fotos (Drive)','https://drive.google.com/drive/folders/...')+field('nPdf','Link del informe PDF (opcional)','https://drive.google.com/file/d/...')+'</div>'+
   '<button class="btn" id="btnGuardar">GUARDAR REPORTE</button></div>';
   if(perfil.rol==='inspector') $('nInsp').value = perfil.nombre || '';
-  const calc = ()=>{ const t = parseFloat($('nSc').value||0)+parseFloat($('nSn').value||0); $('nSt').value = t.toFixed(2); $('nRes').value = resultadoDe(t); };
+  const calc = ()=>{ const t = parseFloat($('nSc').value||0)+parseFloat($('nSn').value||0); $('nSt').value = (100-t).toFixed(2); };
   $('nSc').addEventListener('input',calc); $('nSn').addEventListener('input',calc); calc();
   $('btnGuardar').addEventListener('click', guardarReporte);
 }
-function pub(r){ return {id:r.id,producto:r.producto,exportador:r.exportador,importador:r.importador,destino:r.destino,fecha:r.fecha,inspector:r.inspector,scoreTotal:r.scoreTotal,resultado:r.resultado}; }
+function pub(r){ return {id:r.id,producto:r.producto,exportador:r.exportador,importador:r.importador,destino:r.destino,fecha:r.fecha,inspector:r.inspector,scoreTotal:r.scoreTotal}; }
 async function guardarReporte(){
   const v = id => $(id).value.trim(); const err = $('nerr'), ok = $('nok'); err.style.display='none'; ok.style.display='none';
   const id = v('nId').toUpperCase();
   if(!/^AV-\d{4}-\d{4}$/.test(id)){ err.textContent='El código debe tener el formato AV-2026-0006.'; err.style.display='block'; return; }
   if(!v('nExp')||!v('nImp')){ err.textContent='Completa exportador e importador.'; err.style.display='block'; return; }
-  const cal = parseFloat(v('nSc')||0), con = parseFloat(v('nSn')||0), tot = Math.round((cal+con)*100)/100;
+  const cal = parseFloat(v('nSc')||0), con = parseFloat(v('nSn')||0), tot = Math.round((100-parseFloat(v('nSt')||0))*100)/100;
   const fRaw = v('nFecha'); const fecha = fRaw ? fRaw.split('-').reverse().join('/') : '';
   const fotos = v('nFotos');
   if(fotos && !fotos.startsWith('https://')){ err.textContent='El link de fotos debe empezar con https://'; err.style.display='block'; return; }
+  const pdfL = v('nPdf');
+  if(pdfL && !pdfL.startsWith('https://')){ err.textContent='El link del PDF debe empezar con https://'; err.style.display='block'; return; }
   const code = genCodigo(id);
-  const r = {id,fecha,fechaEmpaque:v('nFemp'),exportador:v('nExp'),importador:v('nImp'),inspector:v('nInsp')||perfil.nombre,producto:v('nProd'),categoria:v('nCat'),calibres:v('nCal'),presentacion:v('nPres'),modalidad:v('nMod'),pallets:v('nPal'),cajas:v('nCaj'),contenedor:v('nCont'),planta:v('nPlanta'),ciudad:v('nCiudad'),destino:v('nDest'),hora:v('nHora'),muestras:parseInt(v('nMue'))||0,brix:v('nBrix'),scoreCalidad:cal,scoreCondicion:con,scoreTotal:tot,resultado:resultadoDe(tot),observaciones:v('nObs'),linkFotos:fotos,verifyCode:code,creadoPor:perfil.nombre||perfil.email,creadoEn:new Date().toISOString()};
+  const r = {id,fecha,fechaEmpaque:v('nFemp'),exportador:v('nExp'),importador:v('nImp'),inspector:v('nInsp')||perfil.nombre,producto:v('nProd'),categoria:v('nCat'),calibres:v('nCal'),presentacion:v('nPres'),modalidad:v('nMod'),pallets:v('nPal'),cajas:v('nCaj'),contenedor:v('nCont'),planta:v('nPlanta'),ciudad:v('nCiudad'),destino:v('nDest'),hora:v('nHora'),muestras:parseInt(v('nMue'))||0,brix:v('nBrix'),scoreCalidad:cal,scoreCondicion:con,scoreTotal:tot,observaciones:v('nObs'),linkFotos:fotos,linkPdf:pdfL,verifyCode:code,creadoPor:perfil.nombre||perfil.email,creadoEn:new Date().toISOString()};
   try{
     if((await getDoc(doc(db,'reportes',id))).exists()){ err.textContent='Ya existe un reporte con el código '+id+'.'; err.style.display='block'; return; }
     await setDoc(doc(db,'reportes',id), r);
